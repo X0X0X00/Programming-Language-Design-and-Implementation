@@ -1,16 +1,27 @@
 # CSC 254 Assignment 1 - Longest Increasing Subsequence 
 
-Zhenhao Zhang zzh133@u.rochester.edu [Ada, C#, Python, Prolog]   
-Zhijie Wang zwang179@u.rochester.edu [Ocaml, Java, Go, Ruby]
+Zhenhao Zhang zzh133@u.rochester.edu 
+Zhijie Wang zwang179@u.rochester.edu 
 
 ## Description
-We are a two-person team, each responsible for four different programming languages. I handle Ada, C#, Python, and Prolog. We write the instructions for running our respective languages in our own README files. Among the four languages I work on, Python has a time complexity of **O(nlogn)**, while the other three are **O(n²)**. We additionally wrote **Java, Go, and Ruby**.
+We are a two-person team, each responsible for four different programming languages. 
+**Zhenhao:** Ada, C#, Python, Prolog    | **Zhijie:** Ocaml, Java, Go, Ruby     
+Each of us **individually completed our own code implementations**, ensuring independent contributions. However, we **jointly collaborated** to write the **README instructions** on how to run the programs.
+
+**Beyond the Requirement**  
+In addition to the required languages, we implemented solutions in **three extra languages**: Java  | Go  | Ruby  
+For **extra credit**, we further implemented an **O(n log n) solution using DP with binary search**.  
+
+
+
+
+
+
+
 
 ## Algorithm
-- **Time Complexity**: **O(n²)** for Ada, C#, Prolog; **O(n log n)** for Python
-- **Space Complexity**: **O(n)** - Stores the sequence and DP arrays
-- **Approach**: Use the DP[I] array to store the length of the longest increasing subsequence ending at position I.
-- **Python Optimization**: Uses binary search and Greedy algorithm to achieve **O(n log n)** complexity
+- **Ocaml, Java, Go, Ruby** achieve an efficient **O(n log n)** time complexity.  
+- **Ada, C#, Python, Prolog** achieve an effient **O(n³)** time complexity.
 
 ## Language Implementations
 
@@ -34,8 +45,7 @@ gnatmake ada_lis.adb
 ./ada_lis
 
 # Manual input
-19 3 11 7 15 12 4 12 8 16
-```
+m s```
 
 
 ### C#
@@ -48,6 +58,9 @@ mcs csharp_lis.cs
 
 # Run
 echo "19 3 11 7 15 12 4 12 8 16" | mono csharp_lis.exe
+
+# Output
+3 11 15 16
 ```
 
 ```bash

@@ -16,7 +16,7 @@ DP = [1-1-[3], 2-1-[1], 3-1-[4], 4-1-[1], 5-1-[5]] #index-length-sequence
 Final DP = [1-1-[3], 2-1-[1], 3-2-[3,4], 4-1-[1], 5-3-[3,4,5]]
 Max = [3,4,5]
 
-Time Complexity: O(n²) Space Complexity: O(n²)
+Time Complexity: O(n³) Space Complexity: O(n²)
 */
 
 

@@ -4,8 +4,10 @@ P SS ZX
 
 RN
 RV NO_IO
+RV NO_DEFAULT_INITIALIZATION
+RV NO_IMPLICIT_LOOPS
 
-U ada_lis%b		ada_lis.adb		870a366c NE OO SU
+U ada_lis%b		ada_lis.adb		7630dd6f NE OO SU
 W ada%s			ada.ads			ada.ali
 W ada.integer_text_io%s	a-inteio.ads		a-inteio.ali
 W ada.strings%s		a-string.ads		a-string.ali
@@ -34,7 +36,7 @@ D a-tags.ads		20250808000000 fbca0ad5 ada.tags%s
 D a-textio.ads		20250808000000 34ef47de ada.text_io%s
 D a-tiinio.ads		20250808000000 76699c8f ada.text_io.integer_io%s
 D a-unccon.ads		20250808000000 0e9b276f ada.unchecked_conversion%s
-D ada_lis.adb		20250905173306 72e15666 ada_lis%b
+D ada_lis.adb		20250911150800 83dbbd65 ada_lis%b
 D interfac.ads		20250808000000 9111f9c1 interfaces%s
 D i-c.ads		20250808000000 e94c966a interfaces.c%s
 D i-cstrea.ads		20250808000000 ffd01b9d interfaces.c_streams%s
@@ -69,51 +71,59 @@ D s-vs_int.ads		20250808000000 06b6b724 system.vs_int%s
 D s-vs_uns.ads		20250808000000 e7f47a27 system.vs_uns%s
 D s-wchcon.ads		20250808000000 d9032363 system.wch_con%s
 G a e
-G c Z b b [ada_lis standard 23 11 none]
+G c Z b b [ada_lis standard 20 11 none]
 X 1 ada.ads
-18K9*Ada 22e8 20|3r6 3r23 4r6 4r31 5r6 5r33 6r6
+18K9*Ada 22e8 20|1r6 1r23 2r6 2r31 3r6 3r33 4r6
 X 6 a-inteio.ads
-18K13*Integer_Text_IO[18|46] 20|4w10 4r35
+18K13*Integer_Text_IO[18|46] 20|2w10 2r35
 X 9 a-string.ads
-16K13*Strings 35e16 20|5r10 5r37 6r10
+16K13*Strings 35e16 20|3r10 3r37 4r10
 X 10 a-strfix.ads
-49K21*Fixed 1390e22 20|6w18
+49K21*Fixed 1390e22 20|4w18
 X 14 a-strunb.ads
-91K21*Unbounded 1641e26 20|5w18 5r45
+91K21*Unbounded 1641e26 20|3w18 3r45
 X 17 a-textio.ads
-58K13*Text_IO 785e16 20|3w10 3r27
+58K13*Text_IO 785e16 20|1w10 1r27
 89I12*Field{integer}
-284U14*New_Line 20|113s10
-515U14*Put 20|110s16
-535U14*Get_Line 20|46s7
+284U14*New_Line 20|126s7
+515U14*Put 20|123s13
+535U14*Get_Line 20|61s7
 X 18 a-tiinio.ads
-85U14*Put 20|108s13[6|18]
-87i7 Width{17|89I12} 20|108r28[6|18]
+85U14*Put 20|121s10[6|18]
+87i7 Width{17|89I12} 20|121r45[6|18]
 X 20 ada_lis.adb
-23U11*Ada_LIS 23b11 122l5 122t12
-24N4 Max_Size 26r34 28r35 28r50
-26A9 Int_array(integer)<integer> 31r10 33r9 34r17 96r19
-28A9 Bool_Array(boolean)<integer><integer> 35r11
-31a4 arr{26A9} 63m16 83r16 83r25 103r30
-32i4 length{integer} 62m16 62r26 63r20 77r21 119r7
-33a4 DP{26A9} 78m10 83r41 83r53 84m16 84r25 89r13 90r27
-34a4 Parent_arr{26A9} 79m10 85m16 104r24
-35a4 Used{28A9}
-39U14 Read_Input 39b14 67l8 67t18 118s4
-40a7 Input_Line{string} 46m16 49r37 57r43 61r37
-41i7 Last{natural} 46m28 48r20 49r23 53r20 57r29
-42i7 Pos{natural} 48r13 49r16 49r48 50m13 50r20 53r13 55r39 57r22 57r54 58m19
-. 58r26 61r61
-43i7 Num{integer} 61m16 63r31
-44i7 Last_Num{natural}
-55i16 Start_Pos{natural} 61r48
-72U14 Find_LIS 72b14 115l8 115t16 120s7
-73i7 Max_Length{integer} 89r21 90m13
-74i7 Max_End_Index{integer} 91m13 98r31
-77i11 I{integer} 78r13 79r21 81r24 83r29 83r56 84r19 85r27 89r16 90r30 91r30
-81i14 J{integer} 83r20 83r44 84r28 85r33
-96a10 Result{26A9} 103m13 108r17
-97i10 Count{integer} 102m13 102r22 103r20 107r32
-98i10 Current{integer} 101r16 103r34 104m13 104r35
-107i14 I{integer} 108r24 109r16
+20U11*Ada_LIS 20b11 134l5 134t12
+21N4 Max_Size 22r34 29r33
+22A9 Int_Array(integer)<integer> 24r18 32r10
+23R9 Sequence 26e14 29r46 37r33 37r50 38r16 48r43
+24a7 Elements{22A9} 42m17 42r36 51m11 95m16 121r32
+25i7 Length{integer} 40m14 40r28 41r25 50m11 50r25 51r24 94m16 102r47 102r66
+. 113r19 114r33 120r39 122r35
+29A9 DP_Array(23R9)<integer> 34r9
+32a4 arr{22A9} 80m16 95r31 102r16 102r25 106r39
+33i4 n{integer} 79m16 79r21 80r20 93r21 99r21 112r21 131r7
+34a4 DP{29A9} 94m10 95m10 102r41 102r60 104m16 104r39 106m32 106r32 113r13
+. 114r27 120r21 121r14 122r17
+37V13 Copy_Sequence{23R9} 37b13 37>27 45l8 45t21 104s25
+37r27 Seq{23R9} 40r24 41r21 42r32
+38r7 Result{23R9} 40m7 42m10 44r14
+41i11 I{integer} 42r26 42r45
+48U14 Add_To_Sequence 48b14 48=30 48>53 52l8 52t23 106s16
+48r30 Seq{23R9} 50m7 50r21 51m7 51r20
+48i53 Value{integer} 51r35
+55U14 Read_Input 55b14 84l8 84t18 130s4
+56a7 Input_Line{string} 61m16 65r37 74r43 78r37
+57i7 Last{natural} 61m28 63r20 65r23 69r20 74r29
+58i7 Pos{natural} 63r13 65r16 65r48 66m13 66r20 69r13 71r39 74r22 74r54 75m19
+. 75r26 78r61
+59i7 Num{integer} 78m16 80r26
+71i16 Start_Pos{natural} 78r48
+87U14 Find_LIS 87b14 127l8 127t16 132s7
+88i7 Longest_Index{integer} 115m13 120r24 121r17 122r20
+89i7 Max_Length{integer} 113r28 114m13
+93i11 I{integer} 94r13 95r13 95r35
+99i11 I{integer} 100r24 102r29 102r63 104r19 106r35 106r43
+100i14 J{integer} 102r20 102r44 104r42
+112i11 I{integer} 113r16 114r30 115r30
+120i11 I{integer} 121r41 122r13
 

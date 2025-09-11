@@ -1,122 +1,171 @@
-
--- Import
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
 
 
-   -- Input: 3 1 4 1 5
-   -- Read: 3 1 4 1 5
-   -- Dynamic programming:
-   -- DP[1] = 1 (list: 3)
-   -- DP[2] = 1 (list: 1)
-   -- DP[3] = 2 (list: 1→4 or 3→4)
-   -- DP[4] = 1 (list: 1)
-   -- DP[5] = 3 (list: 1→4→5)
+-- Example: input = "3 1 4 1 5"
+   --   DP[1] = [3] 
+   --   DP[2] = [1] 1>3 false -> no update
+   --   DP[3] = [3,4] 4>3 & 1+1>1 -> update
+   --   DP[4] = [1] 1>3 false -> no update; 1>1 false -> no update; 1>4 false -> no update
+   --   DP[5] = [3,4,5] 5>3 & 1+1>1 -> update; 5>1 & 1+1>2 false -> no update; 5>4 & 2+1>2 -> update
+   -- Output: 3 4 5
 
-   -- Time complexity O(n²), Space complexity O(n)
+-- Time complexity O(n³), Space complexity O(n²)
    
 
+-- custom types
+-- type type_name is record
+--    field_definitions... 
+-- end record;
+
+-- array
+-- type type_name is array (range) 
+--    of Element_Type;
+
+-- record is a collection of fields(int + array)
+
+-- : means "of type"
+-- := means "initialize"
+-- = means "compare"
+-- and then means "short-circuit AND"
+-- /= means "not equal"
+-- => means "named parameter"
+-- Integer'Value(String) means convert String to Integer
+-- Natural means non-negative integer
+-- Integer means integer 
+-- n.Length means "field Length of record n"
+-- n.Elements(i) means "i-th element of array Elements of record n"
+-- n(i) means "i-th element of array n"
+-- put means print without newline
+-- new_line means print newline
+-- get_line means read a line of input
+-- arr(1 .. 999) means "array with indices from 1 to 999"
+-- loop ... end loop is like { ... }
+-- declare ... begin ... end is like { ... }
+-- if ... then ... else ... end if is like if (...) { ... } else { ... ... }
+-- for I in 1 .. n loop ... end loop is like for (int i = 1; i <= n; i++) { ... }
+-- while ... loop ... end loop is like while (...) { ... }
+-- procedure name(params) is ... begin ... end; is like void name(params) { ... }
+-- function name(params) return Type is ... begin ... end; is like Type name(params) { ... } 
 
 
-procedure Ada_LIS is
-   Max_Size : constant := 999; 
-   -- Int
-   type Int_array is array (1 .. Max_Size) of Integer;
-   -- Boolean
-   type Bool_Array is array (1 .. Max_Size, 1 .. Max_Size) of Boolean;
+procedure Ada_LIS is 
+   -- Ada doesn't have dynamic arrays like C# 
+   type Int_Array is array (1 .. 9999)    
+      of Integer; 
+   type Sequence is record
+      Elements : Int_Array;
+      Length : Integer := 0;
+   end record;
+   type DP_Array is array (1 .. 9999) 
+      of Sequence; -- Each dp[i] is a Sequence(array + length)   
+
+
+   -- declare variables
+   arr : Int_Array;
+   n : Integer := 0;
+   DP : DP_Array;
    
-   -- Input parameters
-   arr : Int_array;
-   length : Integer := 0;
-   DP : Int_array;
-   Parent_arr : Int_array;
-   Used : Bool_Array := (others => (others => False));
+   -- fun to copy
+   function Copy_Sequence(Seq : Sequence) return Sequence is
+      Result : Sequence;
+   begin
+      Result.Length := Seq.Length;
+      for I in 1 .. Seq.Length loop
+         Result.Elements(I) := Seq.Elements(I);
+      end loop;
+      return Result;
+   end Copy_Sequence;
+   
+   -- fun to append
+   procedure Add_To_Sequence(Seq : in out Sequence; Value : Integer) is
+   begin
+      Seq.Length := Seq.Length + 1;
+      Seq.Elements(Seq.Length) := Value;
+   end Add_To_Sequence;
    
 
-   -- Input function
+   -- fun to get input
    procedure Read_Input is
-      Input_Line : String(1 .. 99999); -- Assign buffer
+      Input_Line : String(1 .. 99999);
       Last : Natural;
-      Pos : Natural := 1;
+      Position : Natural := 1; 
       Num : Integer;
-      Last_Num : Natural;
    begin
       Get_Line(Input_Line, Last);
       
-      while Pos <= Last loop
-         while Pos <= Last and then Input_Line(Pos) = ' ' loop
-            Pos := Pos + 1;
+      while Position <= Last loop
+      -- skip spaces
+         while Position <= Last and then Input_Line(Position) = ' ' loop
+            Position := Position + 1;
          end loop;
-         
-         if Pos <= Last then
+
+         if Position <= Last then
             declare
-               Start_Pos : Natural := Pos;
+               Start_Pos : Natural := Position;
             begin
-               while Pos <= Last and then Input_Line(Pos) /= ' ' loop
-                  Pos := Pos + 1;
+               -- Read number
+               while Position <= Last and then Input_Line(Position) /= ' ' loop -- stop at space
+                  Position := Position + 1;
                end loop;
-               
-               Num := Integer'Value(Input_Line(Start_Pos .. Pos - 1));
-               length := length + 1;
-               arr(length) := Num;
+
+               Num := Integer'Value(Input_Line(Start_Pos .. Position - 1));
+               n := n + 1;
+               arr(n) := Num;
             end;
          end if;
       end loop;
    end Read_Input;
    
-
-
-   -- Dynamic programming 
+   -- fun to find LIS
    procedure Find_LIS is
-      Max_Length : Integer := 0;
-      Max_End_Index : Integer := 0;
+      Longest_Index : Integer := 1;
+      Max_Length : Integer := 1;
    begin
-      -- Init
-      for I in 1 .. length loop
-         DP(I) := 1;
-         Parent_arr(I) := -1;
-         
+      -- Init DP
+      -- dp[i] = [arr[i]]
+      for I in 1 .. n loop
+         DP(I).Length := 1;
+         DP(I).Elements(1) := arr(I);
+      end loop;
+      
+      for I in 2 .. n loop
          for J in 1 .. I - 1 loop
-            -- if 19 3 11 7 15 12 4 12 8 16  if 3 < 11; list = [3, 11]
-            if arr(J) < arr(I) and then DP(J) + 1 > DP(I) then
-               DP(I) := DP(J) + 1; -- update the len
-               Parent_arr(I) := J;
+            -- if arr[j] < arr[i] && dp[j].Count + 1 > dp[i].Count
+            if arr(J) < arr(I) and then DP(J).Length + 1 > DP(I).Length then
+               -- dp[i] = new List<int>(dp[j])
+               DP(I) := Copy_Sequence(DP(J));
+               -- dp[i].Add(arr[i])
+               Add_To_Sequence(DP(I), arr(I));
             end if;
          end loop;
-         
-         if DP(I) > Max_Length then
-            Max_Length := DP(I);
-            Max_End_Index := I;
+      end loop;
+      
+      -- fun to find Longest Sequence
+      for I in 1 .. n loop
+         if DP(I).Length > Max_Length then
+            Max_Length := DP(I).Length;
+            Longest_Index := I;
          end if;
       end loop;
       
-      declare
-         Result : Int_array;
-         Count : Integer := 0;
-         Current : Integer := Max_End_Index;
-      begin
-      -- rebuild the Lis
-         while Current /= -1 loop
-            Count := Count + 1;
-            Result(Count) := arr(Current);
-            Current := Parent_arr(Current);
-         end loop;
-         
-         for I in reverse 1 .. Count loop
-            Put(Result(I), Width => 0);
-            if I > 1 then
-               Put(" ");
-            end if;
-         end loop;
-         New_Line;
-      end;
+      -- fun to print
+      for I in 1 .. DP(Longest_Index).Length loop
+         Put(DP(Longest_Index).Elements(I), Width => 0);
+         if I < DP(Longest_Index).Length then
+            Put(" ");
+         end if;
+      end loop;
+      New_Line;
    end Find_LIS;
-   
+
+
+-- main
 begin
    Read_Input;
-   if length > 0 then
+   if n > 0 then
       Find_LIS;
    end if;
 end Ada_LIS;
