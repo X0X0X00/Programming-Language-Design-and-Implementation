@@ -12,7 +12,7 @@ import sys
     i = 3 arr[3] = 1 -> dp[3] = [1] (1 < 3)
     i = 4 arr[4] = 5 -> dp[4] = [3, 4, 5] (5 > 4)
 
-    Time complexity: O(n³) Space complexity: O(n²)
+    Time complexity: O(n²) Space complexity: O(n²)
     """
 
 

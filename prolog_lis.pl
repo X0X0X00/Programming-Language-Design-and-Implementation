@@ -54,7 +54,8 @@ init_dp([Head|Tails], Index, [Index-1-[Head]|Result]) :-
 
 
 % Outer loop i -> 1...N
-loop_for_i(_, I, N, DP, DP) :- I > N, !. % stop DPIN = DPOUT when I > N
+loop_for_i(_, I, N, DP, DP) :- 
+    I > N, !. % stop DPIN = DPOUT when I > N
 % def loop i
 loop_for_i(Sequence, I, N, DPIn, DPOut) :-
     loop_for_j(Sequence, I, 1, DPIn, UpdatedDP),
@@ -63,7 +64,8 @@ loop_for_i(Sequence, I, N, DPIn, DPOut) :-
 
 
 % Inner loop j -> 1...I-1
-loop_for_j(_, I, J, DP, DP) :- J >= I, !. % stop DPIN = DPOUT if J >= I
+loop_for_j(_, I, J, DP, DP) :- 
+    J >= I, !. % stop DPIN = DPOUT if J >= I
 % def loop j
 loop_for_j(Sequence, I, J, DPIn, DPOut) :-
     member(J-LengthJ-SequenceJ, DPIn),      % Find dp[j]: SequenceJ end with ValJ index = J DPIn is a list of dp 
@@ -80,15 +82,15 @@ loop_for_j(Sequence, I, J, DPIn, DPOut) :-
     Next_J is J + 1, % j++
     loop_for_j(Sequence, I, Next_J, DPNext, DPOut).
 
-replace_dp(Index, NewLen, NewSequence, [Index-_-_|Rest], [Index-NewLen-NewSequence|Rest]) :- !. % change when found and stop
-replace_dp(Index, NewLen, NewSequence, [Other|Rest], [Other|UpdatedRest]) :- % not found, continue to search
-    replace_dp(Index, NewLen, NewSequence, Rest, UpdatedRest).
+replace_dp(Index, NewLen, NewSequence, [Index-_-_|Tails], [Index-NewLen-NewSequence|Tails]) :- !. % change when found and stop
+replace_dp(Index, NewLen, NewSequence, [Head|Tails], [Head|UpdatedTails]) :- % not found, continue to search
+    replace_dp(Index, NewLen, NewSequence, Tails, UpdatedTails).
 
 
 max_by_length([_-_-Sequence], Sequence):- !. % stop when only one element
 % def Recursive
 max_by_length([_-Len1-Sequence1, _-Len2-Sequence2|Rest], MaxSequence) :- 
-    % compare Len1 and Len2 or Others
+    % compare Len1 and Len2
     (Len1 >= Len2 ->
         max_by_length([_-Len1-Sequence1|Rest], MaxSequence)
     ;
