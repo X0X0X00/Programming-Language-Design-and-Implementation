@@ -84,17 +84,10 @@ python3 python_lis.py
 
 **Run**:
 ```bash
-# Method 1:  Interactive input
+# Interactive input
 /usr/staff/bin/prolog -s prolog_lis.pl
 # Then at the prompt:
 # ?- lis([19, 3, 11, 7, 15, 12, 4, 12, 8, 16], L).
-# L = [3, 11, 15, 16].
-# -halt. (to exit)
-
-# Method 2: Run test function
-/usr/staff/bin/prolog -s prolog_lis.pl
-# Then at the prompt:
-# ?- test_lis.
 # L = [3, 11, 15, 16].
 # -halt. (to exit)
 ```
