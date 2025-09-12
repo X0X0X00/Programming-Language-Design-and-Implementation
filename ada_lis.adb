@@ -40,7 +40,7 @@ with Ada.Strings.Fixed;
 -- n(i) means "i-th element of array n"
 -- put means print without newline
 -- new_line means print newline
--- get_line means read a line of input
+-- Get_Line(Item, Last) means read a line of input, store in string, and return length
 -- arr(1 .. 999) means "array with indices from 1 to 999"
 -- loop ... end loop is like { ... }
 -- declare ... begin ... end is like { ... }
@@ -53,13 +53,13 @@ with Ada.Strings.Fixed;
 
 procedure Ada_LIS is 
    -- Ada doesn't have dynamic arrays like C# 
-   type Int_Array is array (1 .. 9999)    
+   type Int_Array is array (1 .. 999)    
       of Integer; 
    type Sequence is record
       Elements : Int_Array;
       Length : Integer := 0;
    end record;
-   type DP_Array is array (1 .. 9999) 
+   type DP_Array is array (1 .. 999) 
       of Sequence; -- Each dp[i] is a Sequence(array + length)   
 
 
