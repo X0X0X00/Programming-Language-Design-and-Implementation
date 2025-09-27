@@ -1,18 +1,44 @@
-SL -> S SL
-   ->
-S  -> Id Gets E {3}
-   -> Read Id
-   -> Write E {5}
+SL -> S SL {2}
+   -> {4}
+S  -> Int Id {20}
+   -> Real Id {21}
+   -> Id Gets E {3}
+   -> Read Id {22}
+   -> Write L {5}
+   -> If L Then SL EL Fi {60}
+   -> Do SL Od {61}
+   -> Check L {50}
+EL -> Elsif L Then SL EL {62}
+   -> Else SL {63}
+   -> {64}
+L  -> C {65} CT
+C  -> R {66} RT
+R  -> E {67} ET
 E  -> T {7} TT
 T  -> F {11} FT
-TT -> AO T TT
-   ->
-FT -> MO F FT
-   ->
+CT -> Or C CT {40}
+   -> {69}
+RT -> And R RT {41}
+   -> {70}
+ET -> RO E {42}
+   -> {68}
+TT -> AO T TT {8}
+   -> {71}
+FT -> MO F FT {10}
+   -> {72}
+RO -> Eq
+   -> Ne
+   -> Lt
+   -> Gt
+   -> Le
+   -> Ge
 AO -> Plus
    -> Minus
 MO -> Times
    -> DivBy
-F  -> Id {13}
+F  -> LParen L RParen {19}
+   -> Id {13}
    -> Num {17}
-   -> LParen E RParen {19}
+   -> RLit {18}
+   -> Trunc LParen E RParen {30}
+   -> Float LParen L RParen {31}

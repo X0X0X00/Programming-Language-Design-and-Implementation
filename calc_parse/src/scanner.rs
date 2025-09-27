@@ -58,6 +58,21 @@ impl Scanner {
         // doesn't support compile-time-initialized hash tables.
     kws.insert("read".to_string(),  Read);
     kws.insert("write".to_string(), Write);
+    kws.insert("int".to_string(),    Int);
+    kws.insert("real".to_string(),   Real);
+    kws.insert("if".to_string(),     If);
+    kws.insert("elsif".to_string(),  Elsif);
+    kws.insert("else".to_string(),   Else);
+    kws.insert("then".to_string(),   Then);
+    kws.insert("fi".to_string(),     Fi);
+    kws.insert("do".to_string(),     Do);
+    kws.insert("od".to_string(),     Od);
+    kws.insert("check".to_string(),  Check);
+    kws.insert("trunc".to_string(),  Trunc);
+    kws.insert("float".to_string(),  Float);
+    kws.insert("or".to_string(),     Or);
+    kws.insert("and".to_string(),    And);
+
     Self {
       input: Input::new(),
       next_char: SourceChar { ch:' ', line: 0, col: 0 },
@@ -151,6 +166,34 @@ impl Scanner {
             text.push('=');
             self.next_char = self.input.getc();
             return Token { tp: Gets, text, line, col };
+          }
+        '=' => return Token { tp: Eq, text, line, col },
+        '<' => {
+            if self.next_char.ch == '=' {
+              text.push('=');
+              self.next_char = self.input.getc();
+              return Token { tp: Le, text, line, col };
+            }
+            return Token { tp: Lt, text, line, col };
+          }
+        '>' => {
+            if self.next_char.ch == '=' {
+              text.push('=');
+              self.next_char = self.input.getc();
+              return Token { tp: Ge, text, line, col };
+            }
+            return Token { tp: Gt, text, line, col };
+          }
+        '!' => {
+            if self.next_char.ch != '=' {
+              self.complain("'!' must be followed by '='");
+              text.clear();
+              self.recover("!");
+              continue 'outer;
+            }
+            text.push('=');
+            self.next_char = self.input.getc();
+            return Token { tp: Ne, text, line, col };
           }
          _  => {
             self.complain("");

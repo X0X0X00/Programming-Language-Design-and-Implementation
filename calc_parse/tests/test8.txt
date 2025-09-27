@@ -1,0 +1,5 @@
+real r  int n
+r := 1.25e+2
+n := trunc(r)
+write n
+write float( n < 200 and 3 < 4 )

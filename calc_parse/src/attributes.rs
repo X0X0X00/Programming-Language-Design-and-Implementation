@@ -113,7 +113,10 @@ impl Display for BinExpr {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "({} {} {})",
            match self.op {
-             Plus => "+", Minus => "-", Times => "*", DivBy => "/", _ => "?",
+            Plus => "+", Minus => "-", Times => "*", DivBy => "/",
+            Eq => "==", Ne => "!=", Lt => "<", Gt => ">",
+            Le => "<=", Ge => ">=", And => "&&", Or => "||",
+            _ => "?",
            },
            self.left, self.right)
   }
@@ -182,6 +185,122 @@ impl Display for Body {
   }
 }
 impl Stmt for Body { }
+
+
+// 声明节点
+pub struct Decl {
+  pub var_name: Box<Atom>,
+  pub var_type: String,  // "int" 或 "real"
+}
+
+// new()
+impl Decl {
+  pub fn new(name: Box<Atom>, typ: String) -> Self {
+    Self{var_name: name, var_type: typ}
+  }
+}
+// Display
+impl Display for Decl {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "(decl {} ({}))", self.var_name, self.var_type)
+  }
+}
+impl Stmt for Decl { } // Decl 是语句
+
+
+
+// 条件语句节点
+pub struct If {
+  pub condition: Box<dyn Expr>,
+  pub then_body: Box<Body>,
+  pub else_body: Box<Body>,
+}
+impl If {
+  pub fn new(cond: Box<dyn Expr>, then_b: Box<Body>, else_b: Box<Body>) -> Self {
+      Self{condition: cond, then_body: then_b, else_body: else_b}
+    }
+}
+impl Display for If {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "(if {} {} {})", self.condition, self.then_body, self.else_body)
+    }
+}
+impl Stmt for If { }
+
+
+// 循环语句节点
+pub struct Do {
+  pub body: Box<Body>,
+}
+impl Do {
+  pub fn new(b: Box<Body>) -> Self {
+    Self{body: b}
+  }
+}
+impl Display for Do {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "(do {})", self.body)
+  }
+}
+impl Stmt for Do { }
+
+
+// check 语句节点
+pub struct Check {
+  pub condition: Box<dyn Expr>,
+}
+impl Check {
+  pub fn new(cond: Box<dyn Expr>) -> Self {
+    Self{condition: cond}
+  }
+}
+impl Display for Check {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "(check {})", self.condition)
+  }
+}
+impl Stmt for Check { }
+
+
+
+// trunc 函数节点
+pub struct Trunc {
+  pub expr: Box<dyn Expr>,
+}
+
+impl Trunc {
+  pub fn new(e: Box<dyn Expr>) -> Self {
+    Self{expr: e}
+  }
+}
+impl Display for Trunc {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "(trunc {})", self.expr)
+  }
+}
+impl Expr for Trunc { }
+
+
+
+// float 函数节点
+pub struct Float {
+  pub expr: Box<dyn Expr>,
+}
+
+impl Float {
+  pub fn new(e: Box<dyn Expr>) -> Self {
+    Self{expr: e}
+  }
+}
+impl Display for Float {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "(float {})", self.expr)
+  }
+}
+impl Expr for Float { }
+
+
+
 
 //////////
 /// The attribute stack in a real compiler would contain whatever information
