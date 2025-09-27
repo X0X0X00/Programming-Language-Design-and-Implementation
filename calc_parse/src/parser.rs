@@ -52,6 +52,14 @@ impl Parser {
   fn eat(&mut self, expected: Tkn) -> bool {
     if self.next_tkn.tp == expected {
       println!("match {:?}: {}", expected, self.next_tkn.text);
+      
+      // 保存操作符信息供Action 8使用
+      if matches!(expected, Plus | Minus) {
+        unsafe {
+          crate::actions::LAST_MATCHED_OPERATOR = Some(expected);
+        }
+      }
+      
       self.next_tkn = self.scanner.scan();
       return true;
     }
@@ -142,6 +150,7 @@ impl Parser {
           }
         }
         Some(AR(n)) => {
+          println!("*** Executing action routine {}", n);
           do_action(n, &mut attr_stack, l_attr, r_attr);
           n_attr += 1;
         }

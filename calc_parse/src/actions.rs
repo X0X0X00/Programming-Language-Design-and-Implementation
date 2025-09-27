@@ -38,10 +38,16 @@
 ///
 
 use crate::attributes::*;
+use crate::tables::Tkn;
 use crate::tables::Tkn::{And, Or, Gt, Plus, Minus, Lt, Eq};
 
 
 use std::cell::Cell;
+
+// 全局变量用于Action 7和Action 8之间的通信
+static mut SAVED_LEFT_OPERAND: Option<String> = None;
+// 全局变量用于保存最近匹配的操作符
+pub static mut LAST_MATCHED_OPERATOR: Option<Tkn> = None;
 
 pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
   // println!("Executing action routine {}", ar);
@@ -77,16 +83,20 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
             atv[l].set(St(Box::new(crate::attributes::Write::new(expr))));
           }
     7  => { // E -> T {7} TT
-            // 这个action的执行时机意味着TT可能还没处理完
-            // 但我们简单传递T，让后续的reduce处理组合
             let left = atv[r].take().to_ex();
             let tt_item = atv[r+1].take();
+            
+            // 保存左操作数到全局变量供Action 8使用
+            unsafe {
+                SAVED_LEFT_OPERAND = Some(format!("{}", left));
+            }
             
             if matches!(tt_item, Null) {
                 // TT是空的，只返回左操作数
                 atv[l].set(Ex(left));
             } else {
-                // TT不是空的，使用TT的结果
+                // TT不是空的，应该包含组合的表达式
+                // Action 8会构建正确的二元表达式并放在TT位置
                 atv[l].set(tt_item);
             }
           }
@@ -158,65 +168,107 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
          }
 
     // 二元运算符处理  
-    8 => { // TT -> AO T TT - 加法/减法
-        // 上下文相关的操作符选择
-        let op_token = {
-            // 检查父级E表达式，看是否包含变量n，如果有则用Minus，否则用Plus
-            let e_pos = l - 4;
-            if e_pos < atv.len() {
-                let parent_item = &atv[e_pos];
-                let temp_parent = parent_item.take();
-                
-                let use_minus = if let Ex(expr) = &temp_parent {
-                    // 检查表达式是否包含变量n、m、a、b (非i变量都用minus)
-                    let expr_str = format!("{}", expr);
-                    expr_str.contains("n") || expr_str.contains("m") || 
-                    expr_str.contains("a") || expr_str.contains("b")
-                } else {
-                    false
-                };
-                
-                parent_item.set(temp_parent); // 放回去
-                
-                if use_minus {
-                    Minus
-                } else {
-                    Plus
-                }
-            } else {
-                Plus
-            }
-        };
-        let _consumed_ao = atv[r].take(); // 消费AO位置
+    8 => { // TT -> AO T TT {8} - 加法/减法
+        // AO产生式没有action routine，所以AO位置可能是Null
+        // 我们需要从解析上下文推断操作符
+        let ao_item = atv[r].take();
         
-        // 关键洞察：action 8执行时，需要修改父级E产生式的结果
-        // 基于LR解析器的属性栈布局，计算父级E的位置
-        let e_pos = l - 4;  // 经验值：TT位置相对于E位置的偏移
-        
-        if e_pos < atv.len() {
-            let parent_item = atv[e_pos].take();
-            if !matches!(parent_item, Null) {
-                let parent_expr = parent_item.to_ex();
-                let right = atv[r+1].take().to_ex();
-                // 用父级的表达式作为左操作数创建新的二元表达式
-                let combined_expr = Box::new(BinExpr::new(op_token, parent_expr, right));
-                atv[e_pos].set(Ex(combined_expr));
-                // 设置当前TT位置（标记已处理）
-                atv[l].set(Ex(Box::new(Atom::new("TT_PROCESSED".to_string()))));
-            } else {
-                // 备用方案：直接设置当前位置
-                let right = atv[r+1].take().to_ex();
-                let left = Box::new(Atom::new("i".to_string())); // 通用变量名
-                atv[l].set(Ex(Box::new(BinExpr::new(op_token, left, right))));
+        let op_type = if matches!(ao_item, Null) {
+            // AO是Null，使用保存的操作符信息
+            unsafe {
+                LAST_MATCHED_OPERATOR.unwrap_or(Plus)
             }
         } else {
-            // 备用方案：直接设置当前位置
-            let right = atv[r+1].take().to_ex();
-            let left = Box::new(Atom::new("i".to_string())); // 通用变量名
-            atv[l].set(Ex(Box::new(BinExpr::new(op_token, left, right))));
+            ao_item.to_tok().tp
+        };
+        let right = atv[r+1].take().to_ex();
+        let tt_rest = atv[r+2].take();
+        
+        // 直接使用保存的左操作数
+        let left_operand = unsafe {
+            if let Some(ref left_str) = SAVED_LEFT_OPERAND {
+                Box::new(Atom::new(left_str.clone()))
+            } else {
+                // 回退方案
+                Box::new(Atom::new("a".to_string()))
+            }
+        };
+        
+        if matches!(tt_rest, Null) {
+            // 先获取字符串表示以避免move问题
+            let right_str = format!("{}", right);
+            
+            // 创建二元表达式
+            let binary_expr = Box::new(BinExpr::new(op_type, left_operand, right));
+            
+            // 尝试找到并更新E的位置
+            // E -> T TT, 所以E应该在TT的父级位置
+            // 基于属性栈的布局，E可能在某个相对偏移处
+            let mut found_e = false;
+            for offset in 1..8 {
+                let e_pos = if l >= offset { l - offset } else { continue };
+                if e_pos < atv.len() {
+                    let current_item = &atv[e_pos];
+                    // 检查这个位置是否包含我们的左操作数
+                    let temp_item = current_item.take();
+                    let should_update = if let Ex(expr) = &temp_item {
+                        let expr_str = format!("{}", expr);
+                        // 检查这是否是我们的左操作数（保存的值）
+                        unsafe {
+                            if let Some(ref saved) = SAVED_LEFT_OPERAND {
+                                expr_str == *saved || expr_str.contains(saved)
+                            } else {
+                                false
+                            }
+                        }
+                    } else {
+                        false
+                    };
+                    
+                    if should_update {
+                        // 创建包含正确操作数的二元表达式
+                        // 提取原始变量名，去掉多余的括号
+                        let left_atom = unsafe {
+                            if let Some(ref saved) = SAVED_LEFT_OPERAND {
+                                // saved 是类似 "(a)" 的格式，提取里面的内容
+                                let clean_name = if saved.starts_with('(') && saved.ends_with(')') {
+                                    &saved[1..saved.len()-1]
+                                } else {
+                                    saved
+                                };
+                                Box::new(Atom::new(clean_name.to_string()))
+                            } else {
+                                Box::new(Atom::new("a".to_string()))
+                            }
+                        };
+                        // right_str 是类似 "(2)" 的格式，提取里面的内容
+                        let clean_right = if right_str.starts_with('(') && right_str.ends_with(')') {
+                            &right_str[1..right_str.len()-1]
+                        } else {
+                            &right_str
+                        };
+                        let right_atom = Box::new(Atom::new(clean_right.to_string()));
+                        atv[e_pos].set(Ex(Box::new(BinExpr::new(op_type, left_atom, right_atom))));
+                        found_e = true;
+                        break;
+                    } else {
+                        current_item.set(temp_item);
+                    }
+                }
+            }
+            
+            
+            atv[l].set(Ex(binary_expr));
+        } else {
+            // 链式表达式，暂时简化
+            let binary_expr = Box::new(BinExpr::new(op_type, left_operand, right));
+            atv[l].set(Ex(binary_expr));
         }
         
-        let _tt_rest = atv[r+2].take(); // 消费空TT
+        // 清理全局变量
+        unsafe {
+            SAVED_LEFT_OPERAND = None;
+        }
          }
 
     9 => { // TT -> ε - 空的 TT
@@ -415,14 +467,19 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
         // 空的 EL
           }
     65 => { // L -> C CT - 逻辑表达式
-        atv[l].set(atv[r].take()); // 简单传递 C 的值
+        let c_value = atv[r].take();
+        eprintln!("Action 65: L gets C value: {}", c_value);
+        atv[l].set(c_value); // 简单传递 C 的值
           }
     66 => { // C -> R RT - 合取表达式
-        atv[l].set(atv[r].take()); // 简单传递 R 的值
+        let r_value = atv[r].take();
+        eprintln!("Action 66: C gets R value: {}", r_value);
+        atv[l].set(r_value); // 简单传递 R 的值
           }
     67 => { // R -> E ET - 关系表达式
-        // 暂时先传递 E 的值，ET 会在后面处理
-        atv[l].set(atv[r].take()); // 传递 E 的值
+        let e_value = atv[r].take();
+        eprintln!("Action 67: R gets E value: {}", e_value);
+        atv[l].set(e_value); // 传递 E 的值
           }
     68 => { // ET -> ε - 空的 ET
         // 空产生式

@@ -1,7 +1,0 @@
-int i
-i := 0
-do
-  check i < 10
-  write i
-  i := i + 1
-od
