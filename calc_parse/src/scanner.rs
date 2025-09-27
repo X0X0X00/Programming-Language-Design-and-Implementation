@@ -25,7 +25,6 @@ use Tkn::*;
 use crate::input::Input;
 use crate::input::SourceChar;
 use crate::input::EOF;
-// *** You'll also want to import NL to handle comments.
 
 use std::collections::HashMap;
 
@@ -182,7 +181,23 @@ impl Scanner {
         '+' => return Token { tp: Plus, text, line, col },
         '-' => return Token { tp: Minus, text, line, col },
         '*' => return Token { tp: Times, text, line, col },
-        '/' => return Token { tp: DivBy, text, line, col },
+        '/' => {
+          if self.next_char.ch == '/' {
+            // 这是注释，跳过到行尾
+            loop {
+              self.next_char = self.input.getc();
+              if self.next_char.ch == '\n' || self.next_char.ch == EOF {
+                break;
+              }
+            }
+            // 清空text并重新开始扫描下一个token
+            text.clear();
+            continue 'outer;
+          } else {
+            // 这是除法操作符 (text已经包含了'/')
+            return Token { tp: DivBy, text, line, col };
+          }
+        },
         ':' => {
             if self.next_char.ch != '=' {
               self.complain("");
@@ -194,7 +209,15 @@ impl Scanner {
             self.next_char = self.input.getc();
             return Token { tp: Gets, text, line, col };
           }
-        '=' => return Token { tp: Eq, text, line, col },
+        '=' => {
+            if self.next_char.ch == '=' {
+              text.push('=');
+              self.next_char = self.input.getc();
+              return Token { tp: Eq, text, line, col };
+            }
+            // 单个 = 不是有效的比较操作符，应该报错
+            self.complain("single '=' is not a valid comparison operator; use '==' for equality");
+          }
         '<' => {
             if self.next_char.ch == '=' {
               text.push('=');

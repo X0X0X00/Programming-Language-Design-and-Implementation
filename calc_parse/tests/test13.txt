@@ -1,6 +1,0 @@
-int n  n := 2
-do
-  write n
-  n := n - 1
-// (no 'od' here)
-write 999

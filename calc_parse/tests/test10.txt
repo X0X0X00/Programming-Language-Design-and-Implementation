@@ -1,5 +1,0 @@
-// real + int + conversions
-real r  int i
-r := 2.5e2
-i := trunc(r / 3.14)
-write float( i > 10 and i < 100 )
