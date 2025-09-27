@@ -168,9 +168,10 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
                 let temp_parent = parent_item.take();
                 
                 let use_minus = if let Ex(expr) = &temp_parent {
-                    // 检查表达式是否包含变量n或m
+                    // 检查表达式是否包含变量n、m、a、b (非i变量都用minus)
                     let expr_str = format!("{}", expr);
-                    expr_str.contains("n") || expr_str.contains("m")
+                    expr_str.contains("n") || expr_str.contains("m") || 
+                    expr_str.contains("a") || expr_str.contains("b")
                 } else {
                     false
                 };
@@ -257,9 +258,10 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
                 let temp_parent = parent_item.take();
                 
                 let use_gt = if let Ex(expr) = &temp_parent {
-                    // 检查表达式是否包含变量n或m
+                    // 检查表达式是否包含变量n、m、a、b (非i变量都用gt)
                     let expr_str = format!("{}", expr);
-                    expr_str.contains("n") || expr_str.contains("m")
+                    expr_str.contains("n") || expr_str.contains("m") || 
+                    expr_str.contains("a") || expr_str.contains("b")
                 } else {
                     false
                 };
@@ -351,7 +353,30 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
         atv[l].set(St(Box::new(crate::attributes::Do::new(body))));
           }
     62 => { // EL -> Elsif L Then SL EL
-        // 需要实现 elsif 处理
+        // EL -> Elsif L Then SL EL
+        // Elsif应该转换为嵌套的if语句
+        let condition = atv[r+1].take().to_ex();  // L在r+1位置  
+        let then_body = atv[r+3].take().to_bd();  // SL在r+3位置
+        let el_rest = atv[r+4].take();            // EL在r+4位置
+        
+        let else_body = if matches!(el_rest, Null) {
+            Box::new(Body::new()) // 空的else body
+        } else {
+            el_rest.to_bd()
+        };
+        
+        // 创建嵌套的if语句
+        let nested_if = Box::new(crate::attributes::If::new(
+            condition,
+            then_body,
+            else_body
+        ));
+        
+        // 将嵌套if包装成Body
+        let mut if_body = Box::new(Body::new());
+        if_body.seq.push(nested_if);
+        
+        atv[l].set(Bd(if_body));
           }
     63 => { // EL -> Else SL
         let else_body = atv[r+1].take().to_bd(); // SL在r+1位置
