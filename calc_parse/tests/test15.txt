@@ -1,0 +1,4 @@
+real r  int i
+r := 3.5
+i := trunc( r + 1.5 )
+write float( i < 10 and 2 < 3 )

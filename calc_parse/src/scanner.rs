@@ -135,11 +135,38 @@ impl Scanner {
         }
       }
       if self.next_char.ch.is_ascii_digit() {
+        // 读取整数部分
         loop {
           text.push(self.next_char.ch);
           self.next_char = self.input.getc();
           if !self.next_char.ch.is_ascii_digit() { break; }
         }
+        
+        // 检查是否有小数点，如果有则读取小数部分
+        if self.next_char.ch == '.' {
+          text.push('.');
+          self.next_char = self.input.getc();
+          
+          // 小数点后必须有至少一个数字
+          if self.next_char.ch.is_ascii_digit() {
+            loop {
+              text.push(self.next_char.ch);
+              self.next_char = self.input.getc();
+              if !self.next_char.ch.is_ascii_digit() { break; }
+            }
+            // 这是一个实数
+            if self.next_char.ch.is_alphabetic() {
+              self.complain("number must be separated by whitespace \
+                             from subsequent id or keyword");
+            }
+            return Token { tp: RLit, text, line, col };
+          } else {
+            // 小数点后没有数字，这是错误
+            self.complain("decimal point must be followed by digits");
+          }
+        }
+        
+        // 这是一个整数
         if self.next_char.ch.is_alphabetic() {
           self.complain("number must be separated by whitespace \
                          from subsequent id or keyword");

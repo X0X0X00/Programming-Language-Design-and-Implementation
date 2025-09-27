@@ -1,0 +1,6 @@
+write 1.0
+write 1.
+write .5
+write 12e+
+write 3E4
+write 0.0001e+02

@@ -1,0 +1,10 @@
+int x  read x
+if x < 0 then
+  write 0
+elsif x == 0 then
+  write 1
+elsif x < 10 then
+  write 2
+else
+  write 3
+fi
