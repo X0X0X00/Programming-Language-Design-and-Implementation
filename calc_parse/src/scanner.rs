@@ -30,9 +30,9 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Token {
-  pub tp: Tkn,
-  pub text: String,
-  pub line: usize,
+  pub tp: Tkn,       // token type
+  pub text: String,  // token text
+  pub line: usize,  // line and column where token begins
   pub col: usize,
 }
 impl Clone for Token {
@@ -44,6 +44,7 @@ impl Clone for Token {
   }
 }
 
+// def scanner
 pub struct Scanner {
   input: Input,
   next_char: SourceChar,    // already peeked at
@@ -52,6 +53,7 @@ pub struct Scanner {
 
 impl Scanner {
   pub fn new() -> Self {
+    // Initialize keyword table
     let mut kws = HashMap::new();
         // Actually only temporarily mutable, but the standard library
         // doesn't support compile-time-initialized hash tables.
@@ -111,28 +113,36 @@ impl Scanner {
   // at end of file.  This relieves the parser of the need to call
   // next().unwrap_or(Token{ Stop, _, _, _ })
   pub fn scan(&mut self) -> Token {
-    let mut text = String::new();
-    'outer: loop {
+    let mut text = String::new(); // text of token being built
+    'outer: loop { 
+
+      // Skip white space
       while self.next_char.ch.is_whitespace() {
-        self.next_char = self.input.getc();
+        self.next_char = self.input.getc(); // read next char
       }
       let col = self.next_char.col;
       let line = self.next_char.line;
-      if self.next_char.ch == EOF {
-        return Token { tp: Stop, text, line, col };
+      if self.next_char.ch == EOF { // end of file
+        return Token { tp: Stop, text, line, col }; // text is empty
       }
-      if self.next_char.ch.is_alphabetic() {
+
+      // Now at start of next token
+      if self.next_char.ch.is_alphabetic() { // Id or keyword
+        // 读取标识符或关键字
         loop {
           text.push(self.next_char.ch);
           self.next_char = self.input.getc();
-          if !(self.next_char.ch == '_' ||
+          if !(self.next_char.ch == '_' || 
              self.next_char.ch.is_alphanumeric()) { break; }
         }
-        match self.keywords.get(&text) {
+        match self.keywords.get(&text) { // check for keyword
           Some(kw) => return Token { tp: *kw, text, line, col },
           None     => return Token { tp: Id, text, line, col },
         }
       }
+
+
+      // Number or real literal
       if self.next_char.ch.is_ascii_digit() {
         // 读取整数部分
         loop {
@@ -143,12 +153,12 @@ impl Scanner {
         
         // 检查是否有小数点，如果有则读取小数部分
         if self.next_char.ch == '.' {
-          text.push('.');
-          self.next_char = self.input.getc();
+          text.push('.'); // 添加小数点
+          self.next_char = self.input.getc(); // 读取小数点后的第一个字符
           
           // 小数点后必须有至少一个数字
           if self.next_char.ch.is_ascii_digit() {
-            loop {
+            loop {  // 读取小数部分
               text.push(self.next_char.ch);
               self.next_char = self.input.getc();
               if !self.next_char.ch.is_ascii_digit() { break; }
@@ -166,15 +176,19 @@ impl Scanner {
         }
         
         // 这是一个整数
-        if self.next_char.ch.is_alphabetic() {
+        if self.next_char.ch.is_alphabetic() { 
           self.complain("number must be separated by whitespace \
-                         from subsequent id or keyword");
+                         from subsequent id or keyword"); // 报错
         }
-        return Token { tp: Num, text, line, col };
+        return Token { tp: Num, text, line, col }; // 整数
       }
-      text.push(self.next_char.ch);
-      let c = self.next_char.ch;
-      self.next_char = self.input.getc();
+
+      // Not id or number, so must be special character
+      text.push(self.next_char.ch); // add current char to text
+      let c = self.next_char.ch; // save current char
+      self.next_char = self.input.getc(); // read next char
+      
+      // Single-character tokens
       match c {
         '(' => return Token { tp: LParen, text, line, col },
         ')' => return Token { tp: RParen, text, line, col },
@@ -182,74 +196,75 @@ impl Scanner {
         '-' => return Token { tp: Minus, text, line, col },
         '*' => return Token { tp: Times, text, line, col },
         '/' => {
-          if self.next_char.ch == '/' {
+          if self.next_char.ch == '/' { // 检查是否是注释
             // 这是注释，跳过到行尾
             loop {
               self.next_char = self.input.getc();
               if self.next_char.ch == '\n' || self.next_char.ch == EOF {
-                break;
+                break; // 到达行尾或文件末尾，结束注释
               }
             }
             // 清空text并重新开始扫描下一个token
-            text.clear();
-            continue 'outer;
+            text.clear(); // 清空累积的文本
+            continue 'outer;  // 重新开始扫描下一个token
           } else {
             // 这是除法操作符 (text已经包含了'/')
-            return Token { tp: DivBy, text, line, col };
+            return Token { tp: DivBy, text, line, col };  
           }
         },
-        ':' => {
-            if self.next_char.ch != '=' {
-              self.complain("");
-              text.clear();
-              self.recover(":");
-              continue 'outer;
+        ':' => { // 赋值操作符处理
+            if self.next_char.ch != '=' { // 不是 :=
+              self.complain(""); // 报错
+              text.clear(); // 清空text
+              self.recover(":"); // 恢复扫描
+              continue 'outer; // 重新开始扫描下一个token
             }
-            text.push('=');
-            self.next_char = self.input.getc();
-            return Token { tp: Gets, text, line, col };
+            text.push('='); // 添加 '='
+            self.next_char = self.input.getc(); // 读取下一个字符
+            return Token { tp: Gets, text, line, col }; 
           }
-        '=' => {
+        '=' => { // 等号处理
             if self.next_char.ch == '=' {
-              text.push('=');
+              text.push('='); // 添加第二个'='
               self.next_char = self.input.getc();
-              return Token { tp: Eq, text, line, col };
+              return Token { tp: Eq, text, line, col }; // == 操作符
             }
             // 单个 = 不是有效的比较操作符，应该报错
             self.complain("single '=' is not a valid comparison operator; use '==' for equality");
           }
-        '<' => {
+        '<' => { // 小于号处理
             if self.next_char.ch == '=' {
               text.push('=');
               self.next_char = self.input.getc();
-              return Token { tp: Le, text, line, col };
+              return Token { tp: Le, text, line, col };  // <= 操作符
             }
-            return Token { tp: Lt, text, line, col };
+            return Token { tp: Lt, text, line, col }; // < 操作符
           }
-        '>' => {
+        '>' => { // 大于号处理
             if self.next_char.ch == '=' {
               text.push('=');
               self.next_char = self.input.getc();
-              return Token { tp: Ge, text, line, col };
+              return Token { tp: Ge, text, line, col };  // >= 操作符
             }
-            return Token { tp: Gt, text, line, col };
+            return Token { tp: Gt, text, line, col };  // > 操作符
           }
         '!' => {
-            if self.next_char.ch != '=' {
-              self.complain("'!' must be followed by '='");
+            if self.next_char.ch != '=' { // 不是 !=
+              self.complain("'!' must be followed by '='"); // 报错
               text.clear();
               self.recover("!");
               continue 'outer;
             }
-            text.push('=');
-            self.next_char = self.input.getc();
-            return Token { tp: Ne, text, line, col };
+            text.push('='); // 添加 '='
+            self.next_char = self.input.getc(); // 读取下一个字符
+            return Token { tp: Ne, text, line, col }; // != 操作符
           }
-         _  => {
+         _  => { // 其他未识别字符
+            // 未识别字符，报错并删除
             self.complain("");
             text.clear();
             self.recover(c.to_string().as_str());
-            continue 'outer;
+            continue 'outer; // 重新开始扫描下一个token
           }
       } // end match c
     } // end outer loop

@@ -1,8 +1,5 @@
 # CSC 254 Assignment 2: Extended Calculator Language Frontend
 
-**Course**: CSC 254 - Programming Language Design and Implementation  
-**University**: University of Rochester, Fall 2025  
-**Team Members**: 
 - Zhenhao Zhang (zzh133@u.rochester.edu) - AST Construction
 - Zhijie Wang (zwang179@u.rochester.edu) - Scanner & Error Recovery
 
@@ -11,10 +8,6 @@
 This is Assignment 2, implementing an extended calculator language frontend with syntax error recovery and AST generation. The project builds upon the basic calculator from Assignment 1, adding support for control structures, multiple data types, and robust error handling through a table-driven LL(1) parser implemented in Rust.
 
 ## Compilation and Execution
-
-### Prerequisites
-- Rust toolchain (cargo)
-- Access to `table_gen` utility (for generating parsing tables)
 
 ### Build Instructions
 ```bash
@@ -255,7 +248,7 @@ od
 
 ### Team Division of Labor
 As suggested in the assignment guidelines, we divided the work as follows:
-- **Zhenhao Zhang**: Focused on AST construction, implementing the attribute grammar mechanism and action routines
+- **Zhenhao Zhang**: Focused on AST construction, implementing the attribute grammar mechanism and action routines and the scanner and parser integration
 - **Zhijie Wang**: Handled scanner extensions and error recovery implementation
 
 ### Programming Experience with Rust

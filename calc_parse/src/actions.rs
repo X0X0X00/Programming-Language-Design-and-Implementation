@@ -59,13 +59,13 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
           }
     1  => { // 程序结束，输出最终 AST
             let final_item = atv[r+1].take();  // SL在r+1位置
-            let body = if matches!(final_item, Null) {
-                Box::new(Body::new())
+            let body = if matches!(final_item, Null) { 
+                Box::new(Body::new()) // 空的Body
             } else {
-                final_item.to_bd()
+                final_item.to_bd() // 提取Body
             };
             println!("Parse completed.  AST is");
-            println!("{}", body);
+            println!("{}", body); // 打印AST
           }
     3  => { // S -> Id Gets E {3}
             // *** Demonstrate that we can pass info through attribute records.
@@ -74,7 +74,7 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
             let id = atv[r].take().to_tok();
             let expr = atv[r+2].take().to_ex();
             atv[l].set(St(Box::new(Assign::new(
-                Box::new(Atom::new(id.text)),
+                Box::new(Atom::new(id.text)), 
                 expr
             ))));
           }
