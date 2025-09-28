@@ -53,8 +53,8 @@ impl Parser {
     if self.next_tkn.tp == expected {
       println!("match {:?}: {}", expected, self.next_tkn.text);
       
-      // 保存操作符信息供Action 8使用
-      if matches!(expected, Plus | Minus) {
+      // 保存操作符信息供Action 8和Action 42使用
+      if matches!(expected, Plus | Minus | Gt | Lt | Ge | Le | Eq | Ne) {
         unsafe {
           crate::actions::LAST_MATCHED_OPERATOR = Some(expected);
         }

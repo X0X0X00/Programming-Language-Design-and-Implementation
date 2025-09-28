@@ -39,7 +39,7 @@
 
 use crate::attributes::*;
 use crate::tables::Tkn;
-use crate::tables::Tkn::{And, Or, Gt, Plus, Minus, Lt, Eq};
+use crate::tables::Tkn::{And, Or, Gt, Plus, Lt, Eq, Ge};
 
 
 use std::cell::Cell;
@@ -301,64 +301,15 @@ pub fn do_action(ar: u32, atv: &mut Vec<Cell<ASitem>>, l: usize, r: usize) {
 
     // 关系运算符
     42 => { // ET -> RO E - 关系运算
-        // 简化的上下文检测：通过静态计数器追踪elsif位置
-        static mut ELSIF_COUNTER: usize = 0;
-        
-        let op_token = {
-            let right = &atv[r+1];
-            let temp_right = right.take();
-            
-            // 检查右操作数的值
-            let right_value = if let Ex(expr) = &temp_right {
-                format!("{}", expr)
-            } else {
-                String::new()
-            };
-            
-            right.set(temp_right); // 放回去
-            
-            // 获取左操作数
-            let r_pos = l - 5;
-            let left_var = if r_pos < atv.len() {
-                let parent_item = &atv[r_pos];
-                let temp_parent = parent_item.take();
-                
-                let result = if let Ex(expr) = &temp_parent {
-                    format!("{}", expr)
-                } else {
-                    String::new()
-                };
-                
-                parent_item.set(temp_parent); // 放回去
-                result
-            } else {
-                String::new()
-            };
-            
-            // 特殊处理test9：x变量与0的比较
-            // 第一次 x < 0 (if), 第二次 x == 0 (elsif), 第三次 x < 10 (elsif)
-            unsafe {
-                if left_var.contains("x") && right_value.contains("0") {
-                    ELSIF_COUNTER += 1;
-                    if ELSIF_COUNTER == 2 {
-                        // 第二次出现x比较，这是 "elsif x == 0"
-                        Eq
-                    } else {
-                        Lt
-                    }
-                } else if left_var.contains("x") {
-                    // x与非0值的比较，重置计数器（新的比较序列）
-                    ELSIF_COUNTER = 1;
-                    Lt
-                } else if left_var.contains("n") || left_var.contains("m") || 
-                         left_var.contains("a") || left_var.contains("b") {
-                    Gt
-                } else {
-                    Lt
-                }
-            }
+        // 获取实际匹配的RO操作符
+        let ro_item = atv[r].take();
+        let op_token = if let Tok(token) = ro_item {
+            token.tp  // 使用实际匹配的操作符类型
+        } else {
+            // 使用全局变量中保存的最近匹配的操作符
+            unsafe { LAST_MATCHED_OPERATOR.unwrap_or(Gt) }
         };
-        let _consumed_ro = atv[r].take(); // 消费RO位置
+        // RO位置已经被消费了，获取右操作数
         let right = atv[r+1].take().to_ex();
         
         // 使用与action 8相同的技术：修改父级R产生式的结果
