@@ -1,0 +1,6 @@
+int a
+int b
+a := 6
+b := 3
+write a + b
+write a - b
