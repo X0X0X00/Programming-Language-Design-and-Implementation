@@ -436,12 +436,14 @@ let tokenize (program : string) : token list =
   let categorize tok =
     let (nm, loc) = tok in
     match nm with
-    | "and" | "bool" | "check" | "do" | "else" | "elsif" | "end" | "false" | "fi" |
-      "float" | "if" | "int" | "od" | "or" | "read" | "real" | "then" | "true" |
+    | "and" | "bool" | "check" | "do" | "else" | "elsif" | "end" | "fi" |
+      "float" | "if" | "int" | "not" | "od" | "or" | "read" | "real" | "then" |
       "trunc" | "write" |
       ":=" | "+" | "-" | "*" | "/" | "(" | ")" |
       "<" | "<=" | ">" | ">=" | "!=" | "==" | "$$" ->
        nm, nm, loc
+    | "true" | "false" ->
+       "b_lit", nm, loc
     | _ ->
        match nm.[0] with
        | '.' ->
@@ -453,9 +455,7 @@ let tokenize (program : string) : token list =
        | '0'..'9' ->
           if String.contains nm '.' then "r_lit", nm, loc
           else "i_lit", nm, loc
-       | 'a'..'z' | 'A'..'Z' | '_' ->
-          if nm = "true" || nm = "false" then "b_lit", nm, loc
-          else "id", nm, loc
+       | 'a'..'z' | 'A'..'Z' | '_' -> "id", nm, loc
        | _ -> "error", nm, loc
   in
   map categorize (rev toks)
@@ -635,6 +635,8 @@ and ast_e =
   | AST_trunc of ast_e * row_col      (* lparen location *)
   | AST_binop of string * ast_e * ast_e * row_col
                                       (* op location *)
+  | AST_unop of string * ast_e * row_col
+                                      (* op location *)
 
 (* Convert parse tree to syntax tree.
    Walks the parse tree using a collection of mutually recursive subroutines. *)
@@ -697,6 +699,10 @@ and ast_ize_expr (e : parse_tree) : ast_e =
       ("F", _,
        [PT_term ("trunc", _); PT_term ("(", eloc); expr; PT_term (")", _)]) ->
      AST_trunc (ast_ize_expr expr, eloc)
+  | PT_nt ("F", _, [PT_term ("-", oloc); expr]) ->
+     AST_unop ("-", ast_ize_expr expr, oloc)
+  | PT_nt ("F", _, [PT_term ("not", oloc); expr]) ->
+     AST_unop ("not", ast_ize_expr expr, oloc)
   | PT_nt ("L", _, [lhs; tail]) | PT_nt ("C", _, [lhs; tail])
   | PT_nt ("R", _, [lhs; tail]) | PT_nt ("E", _, [lhs; tail])
   | PT_nt ("T", _, [lhs; tail]) ->
@@ -760,6 +766,8 @@ and ast2_e =
   | AST2_trunc of ast2_e
   | AST2_binop of string * val_type * ast2_e * ast2_e * row_col
                                               (* op location *)
+  | AST2_unop of string * val_type * ast2_e * row_col
+                                              (* op location *)
 let ast2_etype =
   function
   | AST2_real _                 -> Real
@@ -769,6 +777,7 @@ let ast2_etype =
   | AST2_float _                -> Real
   | AST2_trunc _                -> Int
   | AST2_binop (_, tp, _, _, _) -> tp
+  | AST2_unop (_, tp, _, _)     -> tp
 
 (***************************************************************************
     AST Pretty-printers.  These should be complete and usable as-is.
@@ -815,6 +824,7 @@ and pp_e (e : ast_e) : string =
   | AST_float (e, _)          -> "(float " ^ pp_e e ^ ")"
   | AST_trunc (e, _)          -> "(trunc " ^ pp_e e ^ ")"
   | AST_binop (op, lo, ro, _) -> "(" ^ op ^ " " ^ pp_e lo ^ " " ^ pp_e ro ^ ")"
+  | AST_unop (op, operand, _) -> "(" ^ op ^ " " ^ pp_e operand ^ ")"
 
 let pp_p (sl : ast_sl) = print_string ("[ " ^ pp_sl sl "  " ^ "\n]\n")
 
@@ -864,6 +874,8 @@ and pp2_e (e : ast2_e) : string =
   | AST2_trunc e           -> "(trunc " ^ pp2_e e ^ ")"
   | AST2_binop (op, tp, lo, ro, _) ->
      Printf.sprintf "(%s %s %s %s)" (type_name tp) op (pp2_e lo) (pp2_e ro)
+  | AST2_unop (op, tp, operand, _) ->
+     Printf.sprintf "(%s %s %s)" (type_name tp) op (pp2_e operand)
 
 let pp2_p (sl : ast2_sl) = print_string ("[ " ^ pp2_sl sl "  " ^ "\n]\n")
 
@@ -924,6 +936,7 @@ let stab_insert (id : string) (tp : val_type) (loc : row_col)
           match tp with
           | Real -> stab.next_r, stab.next_r + 1, stab.next_i
           | Int -> stab.next_i, stab.next_r, stab.next_i + 1
+          | Bool -> stab.next_i, stab.next_r, stab.next_i + 1  (* bools stored as ints *)
           | Verror -> 0, stab.next_r, stab.next_i
         in {
           scopes = ((id, (tp, vi)) :: scope) :: surround;
@@ -1018,6 +1031,9 @@ and typecheck_s (s : ast_s) (stab : symtab) (in_loop : bool)
      (** YOUR CODE HERE **)
      let (stab2, err) = stab_insert id Real vloc stab in
      AST2_error, stab2, (if err = "" then [] else [err])
+  | AST_b_dec (id, vloc) ->
+     let (stab2, err) = stab_insert id Bool vloc stab in
+     AST2_error, stab2, (if err = "" then [] else [err])
 
 
 
@@ -1092,6 +1108,8 @@ and typecheck_e (e : ast_e) (stab : symtab)
   | AST_real (str, rloc) ->
      (** YOUR CODE HERE **)
      AST2_real (float_of_string str), stab, []
+  | AST_bool (str, bloc) ->
+     AST2_bool (bool_of_string str), stab, []
 
   
 
@@ -1145,23 +1163,37 @@ and typecheck_e (e : ast_e) (stab : symtab)
       let (ro_checked, stab3, ro_errs) = typecheck_e ro stab2 in
       let lo_tp = ast2_etype lo_checked in
       let ro_tp = ast2_etype ro_checked in
-      let (result_tp, type_err) = 
+      let (result_tp, type_err) =
         if lo_tp = Verror || ro_tp = Verror then (Verror, [])
         else if lo_tp <> ro_tp then (Verror, [complaint oloc "type mismatch in binop"])
-        else 
+        else
           match op with
-          | "and" | "or" -> 
-            if lo_tp <> Int then (Verror, [complaint oloc "non-int operand to and/or"])
-            else (Int, [])
-          | "==" | "!=" | "<" | "<=" | ">" | ">=" -> (Int, [])
+          | "and" | "or" ->
+            if lo_tp <> Bool && lo_tp <> Int then (Verror, [complaint oloc "non-bool/int operand to and/or"])
+            else (lo_tp, [])
+          | "==" | "!=" | "<" | "<=" | ">" | ">=" -> (Bool, [])
           | _ -> (lo_tp, [])
       in
       AST2_binop (op, result_tp, lo_checked, ro_checked, oloc), stab3, lo_errs @ ro_errs @ type_err
 
+  | AST_unop (op, operand, oloc) ->
+     let (operand_checked, stab2, operand_errs) = typecheck_e operand stab in
+     let operand_tp = ast2_etype operand_checked in
+     let (result_tp, type_err) =
+       if operand_tp = Verror then (Verror, [])
+       else
+         match op with
+         | "-" ->
+            if operand_tp = Int || operand_tp = Real then (operand_tp, [])
+            else (Verror, [complaint oloc "unary minus requires int or real"])
+         | "not" ->
+            if operand_tp = Int || operand_tp = Bool then (operand_tp, [])
+            else (Verror, [complaint oloc "not operator requires int or bool"])
+         | _ -> (Verror, [complaint oloc ("unknown unary operator: " ^ op)])
+     in
+     AST2_unop (op, result_tp, operand_checked, oloc), stab2, operand_errs @ type_err
 
 
-
-      
 (* Typecheck a whole AST.  Return an AST2, a (properly ordered) error list,
    and counts of real and int vars. *)
 let typecheck (p : ast_sl)
@@ -1191,6 +1223,7 @@ type status =
 type value =
   | Rvalue of float
   | Ivalue of int
+  | Bvalue of bool
   | Evalue of string    (* divide-by-zero is the only bad case at present *)
 
 (* Accumulated output is constructed in reverse. *)
@@ -1253,14 +1286,21 @@ and interpret_read (tp, ix : vtp_ind) (loc : row_col) (mem : memory)
         (try
           mem.ints.(ix) <- int_of_string h;
           Good, t, outp
-        with Failure _ -> 
+        with Failure _ ->
           Bad, inp, complaint loc "non-int input" :: outp)
     | Real ->
         (try
           mem.reals.(ix) <- float_of_string h;
           Good, t, outp
-        with Failure _ -> 
+        with Failure _ ->
           Bad, inp, complaint loc "non-real input" :: outp)
+    | Bool ->
+        (try
+          let b = bool_of_string h in
+          mem.ints.(ix) <- if b then 1 else 0;
+          Good, t, outp
+        with Failure _ ->
+          Bad, inp, complaint loc "non-bool input" :: outp)
     | Verror -> raise (Failure "error type in read")
 
    
@@ -1277,6 +1317,7 @@ and interpret_write (expr : ast2_e) (mem : memory)
   match interpret_e expr mem with
   | Rvalue r -> Good, inp, (Printf.sprintf "%f" r) :: outp
   | Ivalue i -> Good, inp, (string_of_int i) :: outp
+  | Bvalue b -> Good, inp, (string_of_bool b) :: outp
   | Evalue msg -> Bad, inp, msg :: outp
 
 
@@ -1292,6 +1333,7 @@ and interpret_assign (tp, ix : vtp_ind) (expr : ast2_e) (mem : memory)
   match interpret_e expr mem with
   | Rvalue r -> mem.reals.(ix) <- r; Good, inp, outp
   | Ivalue i -> mem.ints.(ix) <- i; Good, inp, outp
+  | Bvalue b -> mem.ints.(ix) <- if b then 1 else 0; Good, inp, outp
   | Evalue msg -> Bad, inp, msg :: outp
     
 
@@ -1306,8 +1348,10 @@ and interpret_if (cond : ast2_e) (tsl : ast2_sl) (esl : ast2_sl)
   match interpret_e cond mem with
   | Ivalue 0 -> interpret_sl esl mem inp outp
   | Ivalue _ -> interpret_sl tsl mem inp outp
+  | Bvalue false -> interpret_sl esl mem inp outp
+  | Bvalue true -> interpret_sl tsl mem inp outp
   | Evalue msg -> Bad, inp, msg :: outp
-  | _ -> raise (Failure "non-int condition")
+  | _ -> raise (Failure "non-int/bool condition")
 
   
 
@@ -1321,8 +1365,10 @@ and interpret_check (cond : ast2_e) (mem : memory)
   match interpret_e cond mem with
   | Ivalue 0 -> Done, inp, outp
   | Ivalue _ -> Good, inp, outp
+  | Bvalue false -> Done, inp, outp
+  | Bvalue true -> Good, inp, outp
   | Evalue msg -> Bad, inp, msg :: outp
-  | _ -> raise (Failure "non-int condition")
+  | _ -> raise (Failure "non-int/bool condition")
 
   
 
@@ -1352,10 +1398,12 @@ and interpret_e (expr : ast2_e) (mem : memory) : value =
   match expr with
   | AST2_real r -> Rvalue r
   | AST2_int n -> Ivalue n
+  | AST2_bool b -> Bvalue b
   | AST2_id (_, (tp, ix)) ->
      begin match tp with
      | Real -> Rvalue mem.reals.(ix)
      | Int -> Ivalue mem.ints.(ix)
+     | Bool -> Bvalue (mem.ints.(ix) <> 0)
      | Verror -> raise (Failure "error type id??")
      end
   | AST2_float e ->
@@ -1389,12 +1437,12 @@ and interpret_e (expr : ast2_e) (mem : memory) : value =
           | "*" -> Rvalue (l *. r)
           | "/" -> if r = 0. then Evalue (complaint loc "divide by zero")
                   else Rvalue (l /. r)
-          | "==" -> Ivalue (if l = r then 1 else 0)
-          | "!=" -> Ivalue (if l <> r then 1 else 0)
-          | "<" -> Ivalue (if l < r then 1 else 0)
-          | "<=" -> Ivalue (if l <= r then 1 else 0)
-          | ">" -> Ivalue (if l > r then 1 else 0)
-          | ">=" -> Ivalue (if l >= r then 1 else 0)
+          | "==" -> Bvalue (l = r)
+          | "!=" -> Bvalue (l <> r)
+          | "<" -> Bvalue (l < r)
+          | "<=" -> Bvalue (l <= r)
+          | ">" -> Bvalue (l > r)
+          | ">=" -> Bvalue (l >= r)
           | _ -> raise (Failure "unknown real op"))
       | Ivalue l, Ivalue r ->
         (match op with
@@ -1405,14 +1453,31 @@ and interpret_e (expr : ast2_e) (mem : memory) : value =
                   else Ivalue (l / r)
           | "and" -> Ivalue (if l <> 0 && r <> 0 then 1 else 0)
           | "or" -> Ivalue (if l <> 0 || r <> 0 then 1 else 0)
-          | "==" -> Ivalue (if l = r then 1 else 0)
-          | "!=" -> Ivalue (if l <> r then 1 else 0)
-          | "<" -> Ivalue (if l < r then 1 else 0)
-          | "<=" -> Ivalue (if l <= r then 1 else 0)
-          | ">" -> Ivalue (if l > r then 1 else 0)
-          | ">=" -> Ivalue (if l >= r then 1 else 0)
+          | "==" -> Bvalue (l = r)
+          | "!=" -> Bvalue (l <> r)
+          | "<" -> Bvalue (l < r)
+          | "<=" -> Bvalue (l <= r)
+          | ">" -> Bvalue (l > r)
+          | ">=" -> Bvalue (l >= r)
           | _ -> raise (Failure "unknown int op"))
+      | Bvalue l, Bvalue r ->
+        (match op with
+          | "and" -> Bvalue (l && r)
+          | "or" -> Bvalue (l || r)
+          | "==" -> Bvalue (l = r)
+          | "!=" -> Bvalue (l <> r)
+          | _ -> raise (Failure "unknown bool op"))
       | _ -> raise (Failure "type mismatch in binop"))
+
+  | AST2_unop (op, tp, operand, loc) ->
+     let v = interpret_e operand mem in
+     (match v, op with
+       | Evalue msg, _ -> Evalue msg
+       | Rvalue r, "-" -> Rvalue (-.r)
+       | Ivalue i, "-" -> Ivalue (-i)
+       | Ivalue i, "not" -> Ivalue (if i = 0 then 1 else 0)
+       | Bvalue b, "not" -> Bvalue (not b)
+       | _ -> raise (Failure "type mismatch in unop"))
 
 (* Input to a calculator program is just a sequence of numbers, entered
    as one long character string.  We use the standard Str library to
