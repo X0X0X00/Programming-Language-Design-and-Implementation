@@ -1,4 +1,4 @@
-/// Output produced by table_gen, 27 Sep. 2025
+/// Output produced by table_gen, 29 Sep. 2025
 /**
 Goal -> {0} SL {1} Stop
 SL -> S SL {2}
@@ -17,17 +17,17 @@ EL -> Elsif L Then SL EL {62}
 L  -> C {65} CT
 C  -> R {66} RT
 R  -> E {67} ET
-E  -> T {7} TT
-T  -> F {11} FT
+E  -> T TT {7}
+T  -> F FT {11}
 CT -> Or C CT {40}
    -> {69}
 RT -> And R RT {41}
    -> {70}
 ET -> RO E {42}
    -> {68}
-TT -> AO T TT {8}
+TT -> AO T {8} TT
    -> {71}
-FT -> MO F FT {10}
+FT -> MO F {10} FT
    -> {72}
 RO -> Eq
    -> Ne
@@ -87,17 +87,17 @@ pub const PROD_TAB: [&'static[PSitem]; 45] = [
 /* 14  L    */  &[NT(C), AR(65), NT(CT)],
 /* 15  C    */  &[NT(R), AR(66), NT(RT)],
 /* 16  R    */  &[NT(E), AR(67), NT(ET)],
-/* 17  E    */  &[NT(T), AR(7), NT(TT)],
-/* 18  T    */  &[NT(F), AR(11), NT(FT)],
+/* 17  E    */  &[NT(T), NT(TT), AR(7)],
+/* 18  T    */  &[NT(F), NT(FT), AR(11)],
 /* 19  CT   */  &[Tk(Or), NT(C), NT(CT), AR(40)],
 /* 20  CT   */  &[AR(69)],
 /* 21  RT   */  &[Tk(And), NT(R), NT(RT), AR(41)],
 /* 22  RT   */  &[AR(70)],
 /* 23  ET   */  &[NT(RO), NT(E), AR(42)],
 /* 24  ET   */  &[AR(68)],
-/* 25  TT   */  &[NT(AO), NT(T), NT(TT), AR(8)],
+/* 25  TT   */  &[NT(AO), NT(T), AR(8), NT(TT)],
 /* 26  TT   */  &[AR(71)],
-/* 27  FT   */  &[NT(MO), NT(F), NT(FT), AR(10)],
+/* 27  FT   */  &[NT(MO), NT(F), AR(10), NT(FT)],
 /* 28  FT   */  &[AR(72)],
 /* 29  RO   */  &[Tk(Eq)],
 /* 30  RO   */  &[Tk(Ne)],

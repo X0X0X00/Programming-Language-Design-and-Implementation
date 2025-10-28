@@ -1,0 +1,4 @@
+int n
+read n
+n := 1 + * 2
+write n

@@ -1,0 +1,4 @@
+int n
+read n
+n := 1 + * 2      // bad: stray '*'
+write (n          // bad: missing ')'

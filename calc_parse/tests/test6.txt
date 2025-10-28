@@ -1,0 +1,10 @@
+int a  read a
+int b  read b
+
+if a > b then
+  write a
+elsif b > a then
+  write b
+else
+  write 0
+fi

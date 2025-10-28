@@ -1,0 +1,4 @@
+int y
+// This is a comment
+y := 42
+write y

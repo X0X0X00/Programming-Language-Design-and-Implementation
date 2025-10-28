@@ -1,11 +1,10 @@
 # CSC 254 Assignment 2: Extended Calculator Language Frontend
 
-- Zhenhao Zhang (zzh133@u.rochester.edu) - AST Construction
-- Zhijie Wang (zwang179@u.rochester.edu) - Scanner & Error Recovery
-
 ## Project Overview
 
-This is Assignment 2, implementing an extended calculator language frontend with syntax error recovery and AST generation. The project builds upon the basic calculator from Assignment 1, adding support for control structures, multiple data types, and robust error handling through a table-driven LL(1) parser implemented in Rust.
+This is Assignment 2 for CSC 254. We work in groups of two. 
+- Zhenhao Zhang (zzh133@u.rochester.edu) - AST Construction
+- Zhijie Wang (zwang179@u.rochester.edu) - Scanner & Error Recovery
 
 ## Compilation and Execution
 
@@ -16,15 +15,15 @@ table_gen < calc_gram.txt > src/tables.rs
 
 # Compile the project
 cargo build
-
-# Or compile and run directly
-cargo run < tests/test_01_basic_declarations.txt
 ```
 
 ### Running Tests
 ```bash
 # Run individual test
 cargo run < tests/test_01_basic_declarations.txt
+
+~cs254/bin/calc_parse < tests/test_01_basic_declarations.txt
+
 
 # Compare with sample solution
 ~cs254/bin/calc_parse < tests/test_01_basic_declarations.txt > expected1.txt
@@ -34,217 +33,75 @@ diff expected1.txt output1.txt
 
 ## Test Cases
 
-The `tests/` directory contains 11 test cases that progressively test different language features:
+The `tests/` directory contains **39 comprehensive test cases** grouped by language features:
 
-| Test File | Language Features Tested |
-|-----------|-------------------------|
-| `test_01_basic_declarations.txt` | Variable declarations, read/write operations, basic assignment |
-| `test_02_real_type.txt` | Real number type support, floating-point literals |
-| `test_03_conditional.txt` | If-then-else statements, comparison operators |
-| `test_04_loop_basic.txt` | Do-while loops, check statements, arithmetic in assignments |
-| `test_05_loop_advanced.txt` | Advanced loops with subtraction, countdown patterns |
-| `test_06_nested_loops.txt` | Nested loop structures, multiple variable manipulation |
-| `test_07_complex_conditional.txt` | Elsif clauses, complex branching logic |
-| `test_08_multiple_elsif.txt` | Multiple elsif branches, equality/comparison operators |
-| `test_09_comments.txt` | Comment parsing, end-of-file handling, inline comments |
-| `test_10_binary_expressions.txt` | Parenthesized expressions, binary operations in write statements |
-| `test_11_comprehensive.txt` | Nested control structures, complex program flow |
+### Basic Test Series (test1-test10)
+- `test1.txt` through `test10.txt` - Initial development and regression tests
 
-### Detailed Test Descriptions
+### Basic Declarations & Types (3 tests)
+- `test_01_basic_declarations.txt` - Variable declarations, read/write operations
+- `test_02_real_type.txt` - Real number literals with decimal notation
+- `test_02_real_withe.txt` - Scientific notation (e.g., `10e+2`, `3.14e-10`)
 
-### test_01_basic_declarations.txt
-**Purpose**: Tests basic variable declarations, input, assignment, and output
-```
-int n
-read n
-n := 2
-write n
-```
-**Tests**: 
-- Integer variable declaration
-- Read operation
-- Simple assignment
-- Write operation
+### Conditional Statements (4 tests)
+- `test_03_conditional.txt` - If-then-else with comparison operators
+- `test_03_compare.txt` - Less-than operator edge cases
+- `test_07_complex_conditional.txt` - Elsif clauses
+- `test_08_multiple_elsif.txt` - Multiple elsif branches
 
-### test_02_real_type.txt
-**Purpose**: Tests real number type support
-```
-real x
-x := 3.14
-```
-**Tests**:
-- Real variable declaration
-- Assignment with floating-point literal
+### Loops (4 tests)
+- `test_04_loop_basic.txt` - Basic do-od loops with check statements
+- `test_05_loop_advanced.txt` - Advanced loops with countdown patterns
+- `test_06_nested_loops.txt` - Nested loop structures
+- `test_18_loop_with_conditions.txt` - Loops combined with conditional logic
 
-### test_03_conditional.txt
-**Purpose**: Tests basic conditional statements
-```
-int n  read n
-if n > 0 then
-  write n
-else
-  write 0
-fi
-```
-**Tests**:
-- If-then-else structure
-- Comparison operators (`>`)
-- Conditional execution
+### Expressions & Operators (5 tests)
+- `test_10_binary_expressions.txt` - Parenthesized expressions, binary operations
+- `test_12_multiplication_division.txt` - Multiplication and division operators
+- `test_13_complex_arithmetic.txt` - Complex arithmetic expressions
+- `test_14_inequality_operators.txt` - Inequality comparison operators (`!=`, `<=`, `>=`)
+- `test_17_complex_expressions.txt` - Advanced expression combinations
 
-### test_04_loop_basic.txt
-**Purpose**: Tests basic loop functionality
-```
-int i
-i := 0
-do
-  check i < 10
-  write i
-  i := i + 1
-od
-```
-**Tests**:
-- Do-while loop structure
-- Check statements (loop conditions)
-- Arithmetic expressions in assignments
+### Comments (1 test)
+- `test_09_comments.txt` - Line comment parsing (`//`) and EOF handling
 
-### test_05_loop_advanced.txt
-**Purpose**: Tests advanced loop with decrementation
-```
-int n  read n
-do
-  check n > 0
-  write n
-  n := n - 1
-od
-```
-**Tests**:
-- Subtraction operations
-- Countdown loop pattern
-- Dynamic loop conditions
+### Mixed Features & Comprehensive Tests (9 tests)
+- `test_11_comprehensive.txt` - Nested control structures
+- `test_15_mixed_types.txt` - Operations with mixed int/real types
+- `test_16_triple_nested.txt` - Triple nested control structures
+- `test_16_comp1.txt` - Comprehensive feature test 1
+- `test_17_comp2.txt` - Comprehensive feature test 2
+- `test_18_comp3.txt` - Comprehensive feature test 3
+- `test_19_factorial_calculation.txt` - Factorial calculation algorithm
+- `test_20_comprehensive_advanced.txt` - Advanced comprehensive integration test
 
-### test_06_nested_loops.txt
-**Purpose**: Tests nested loop structures
-```
-int n  read n
-int m  read m
-do
-  check n > 0
-  do
-    check m > 0
-    write n
-    write m
-    m := m - 1
-  od
-  n := n - 1
-  m := 2
-od
-```
-**Tests**:
-- Nested do-while loops
-- Multiple variable manipulation
-- Complex control flow
+### Error Handling (4 tests)
+- `test_12_error.txt` - Syntax error recovery test 1
+- `test_13_error2.txt` - Syntax error recovery test 2
+- `test_14_error3.txt` - Syntax error recovery test 3 (premature EOF)
+- `test_15_error4.txt` - Syntax error recovery test 4 (token deletion)
 
-### test_07_complex_conditional.txt
-**Purpose**: Tests complex conditional with multiple branches
-```
-int a  read a
-int b  read b
-if a > b then
-  a := a - b
-elsif b > a then
-  b := b - a
-else
-  write a
-fi
-```
-**Tests**:
-- Elsif clauses
-- Multiple comparison operations
-- Complex branching logic
-
-### test_08_multiple_elsif.txt
-**Purpose**: Tests multiple elsif conditions
-```
-int x  read x
-if x < 0 then
-  write 0
-elsif x == 0 then
-  write 1
-elsif x < 10 then
-  write 2
-else
-  write 3
-fi
-```
-**Tests**:
-- Multiple elsif branches
-- Equality operator (`==`)
-- Less-than operator (`<`)
-- Cascading conditions
-
-### test_09_comments.txt
-**Purpose**: Tests comment handling and edge cases
-```
-// last line has no newline
-int x  x := 1 // trailing comment at end
-```
-**Tests**:
-- Comment parsing
-- End-of-file handling
-- Inline comments
-
-### test_10_binary_expressions.txt
-**Purpose**: Tests parenthesized binary expressions (the main fix)
-```
-int a
-a := 10
-write ( a + 2 )
-```
-**Tests**:
-- Parenthesized expressions
-- Binary addition in write statements
-- Proper AST construction for complex expressions
-
-### test_11_comprehensive.txt
-**Purpose**: Comprehensive test combining multiple features
-```
-int n  n := 3
-do
-  if n > 1 then
-    write n
-    write n + 1
-  else
-    write 0
-  fi
-  n := n - 1
-  check n >= 0
-od
-```
-**Tests**:
-- Nested control structures (do-if-then-else)
-- Binary expressions in write statements
-- Greater-than-or-equal operator (`>=`)
-- Complex program flow
 
 ## Implementation Details
 
 ### Scanner Extensions
-- **Comments**: Support for line comments (`//`) with proper filtering in lexical analysis
-- **Real numbers**: Extended tokenization to handle floating-point literals with decimal points
-- **Double-character operators**: Added support for `<=`, `>=`, `!=`, `==` comparison operators
-- **Robust tokenization**: Improved handling of whitespace and end-of-file conditions
+- **Comments**: Added line comments (`//`) support with proper filtering
+- **Real numbers**: Added support for decimal numbers like `1.23`
+- **Two-character operators**: Added `<=`, `>=`, `!=`, `==` operators
+
 
 ### Parser Error Recovery
-- **Table-driven recovery**: Implemented global FOLLOW set-based error recovery mechanism
-- **Token insertion**: Supports automatic insertion of missing tokens when syntactically required
-- **Token skipping**: Gracefully skips illegal tokens while maintaining parse state
-- **Line number tracking**: Provides accurate error location reporting for debugging
+- **Error recovery**: Added FOLLOW set recovery with token skip and insert
+- **Token insertion**: Auto-adds missing tokens when needed
+- **Token skipping**: Skips bad tokens while keeping parse state
+- **Line tracking**: Shows exact error locations for debugging
 
-### AST Construction (Zhenhao's Implementation)
-- **Node definitions**: Comprehensive AST node types defined in `attributes.rs` using Rust enums
-- **Action routines**: Implemented approximately 50 action routines in `actions.rs` for AST construction
-- **Memory management**: Used `Box<T>` for recursive AST structures to handle Rust ownership
-- **Output formatting**: Square brackets for statement lists, parentheses for expressions, fully compatible with sample solution
+### AST Construction
+- **Node types**: Made complete AST nodes in `attributes.rs` using Rust enums
+- **Action routines**: Built 28 action routines in `actions.rs` for AST building (actions 0-72)
+- **Memory handling**: Used `Box<T>` for recursive AST parts to handle Rust ownership
+- **Output format**: Square brackets for statements, parentheses for expressions, perfectly matches instructor's expected format
+
 
 ### Team Division of Labor
 As suggested in the assignment guidelines, we divided the work as follows:
@@ -252,34 +109,22 @@ As suggested in the assignment guidelines, we divided the work as follows:
 - **Zhijie Wang**: Handled scanner extensions and error recovery implementation
 
 ### Programming Experience with Rust
-This project provided valuable experience with Rust's ownership system and memory safety features. Key learning points included:
-- Using `enum` types for representing different AST node variants
-- Managing memory with `Box<T>` for recursive data structures
-- Working with Rust's strict borrowing rules in parser implementation
-- Leveraging pattern matching for clean AST construction code
+
+Zhenhao:
+In this project, I was mainly responsible for building the AST, while my teammate worked on the scanner. Later, when updating and running the tests, we discovered that the scanner did not cover operators like != and ==, which caused the AST to fail during parsing. This experience showed me the importance of clearly defining module interfaces at the beginning of a project, and also demonstrated how integration testing can reveal issues that may not appear during individual development.
+
+On the technical side, this project taught me many important Rust concepts. While building the AST, I used the ownership system and borrow checker, and applied Box<T> to handle recursive data structures. I also combined traits with Box<dyn Trait> to implement different types of expressions. While improving the scanner, I appreciated the simplicity and safety of Rust’s match and enum. With the Cargo toolchain (such as cargo build and cargo run), I experienced efficient development and debugging.
+
+
+
+Zihijie:
+My programming experience with Rust was decent. The syntax of Rust is not super complicated and kind similar to programing languages that we are familiar with such as C++ and java. The Rust resources given the instructor are very helpful--- they provided lot of fundamentals such as control flow, loop, data structures, which gave me a solid foundation to work through the project. I also gained a lot of new experience with Rust features such as `match`, `enum`, and a Cargo-based workflow such as `cargo run`, `cargo build`.
 
 ### Output Format
-The parser generates AST output in S-expression format:
-- **Square brackets `[]`**: Represent statement lists
-- **Parentheses `()`**: Represent fixed structures (operators, function calls)
-- **Atoms**: Variable names, numbers, and operators
-
-Example output for `test_10_binary_expressions.txt`:
-```
-Parse completed.  AST is
-[ (decl (a) (int)) (:= (a) (10)) (write (+ (a) (2))) ]
-```
+Is the same as the sample solution provided by the instructor, with square brackets for statements and parentheses for expressions.
 
 ## Known Issues / Special Notes
 
-- Error recovery focuses on global FOLLOW set recovery rather than immediate local recovery
-- Real number parsing supports decimal notation but not scientific notation (e.g., `1.23e4`)
-- The implementation prioritizes correctness and compatibility with the sample solution over performance optimizations
-
-## Architecture Overview
-
-- **`scanner.rs`**: Lexical analysis with extended token support
-- **`parser.rs`**: Table-driven LL(1) parsing with error recovery
-- **`tables.rs`**: Parse tables generated by external `table_gen` utility
-- **`actions.rs`**: Action routines for AST construction and semantic analysis
-- **`attributes.rs`**: AST node type definitions and attribute handling
+- Error recovery uses FOLLOW sets and supports token insert and delete
+- Real number parsing handles decimal and scientific notation with optional exponent
+- Implementation focuses on correctness and matching sample solution over speed

@@ -1,0 +1,7 @@
+int i
+i := 0
+do
+  check i < 3
+  write i
+  i := i + 1
+od

@@ -17,145 +17,284 @@
 //  *** You should disable this mechanism after recovering from a syntax error.
 //
 
-use crate::tables::Tkn;
-use Tkn::*;
-use crate::tables::{Goal, PARSE_TAB, PROD_TAB, PSitem};
-// *** You'll also want to import FIRST and FOLLOW to do error recovery.
-use crate::tables::Act::*;
+
+use crate::tables::{Tkn, Ntm, Goal, PARSE_TAB, PROD_TAB, PSitem, FOLLOW};
+use crate::tables::Tkn::{DivBy, Eq, Ge, Gt, Le, Lt, Minus, Ne, Plus, Stop, Times};
+use crate::tables::Act::{self, Prod, EProd, Err as ActErr}; // import Act variants cleanly
 use PSitem::*;
-use crate::scanner::Scanner;
-use crate::scanner::Token;
+
+use crate::scanner::{Scanner, Token};
 use crate::attributes::*;
 use crate::actions::do_action;
 
 use std::cell::Cell;
 
-// *** Anything that needs to be shared among methods in impl Parser needs to
-// *** be a field of this struct.
+const TRACE: bool = false;
+
+/// Helper: is terminal `t` in FOLLOW(X)?
+fn in_follow(x: Ntm, t: Tkn) -> bool {
+    FOLLOW[x as usize].contains(&t)
+}
+
+/// Helper: format token names to match sample output
+fn show_tkn(tp: Tkn) -> String {
+  match tp {
+      Tkn::Lt => "LT",
+      Tkn::Le => "LE",
+      Tkn::Gt => "GT",
+      Tkn::Ge => "GE",
+      Tkn::Eq => "EQ",
+      Tkn::Ne => "NE",
+      _ => return format!("{:?}", tp), 
+  }.to_string()
+}
+
+
+fn report_insert(expected: Tkn, line: usize, col: usize) {
+  println!(
+      "syntax error at line {} column {}; inserted {}",
+      line,
+      col,
+      show_tkn(expected)  
+  );
+}
+
+
+/// The parser object 
 pub struct Parser {
-  scanner: Scanner,
-  next_tkn: Token,          // already peeked at
-  parse_stack: Vec<PSitem>,
+    scanner: Scanner,
+    next_tkn: Token,       
+    parse_stack: Vec<PSitem>,
 }
 
 impl Parser {
-  pub fn new() -> Self {
-    Self {
-      scanner: Scanner::new(),
-      next_tkn: Token { tp: TknSIZE, text: String::new(), line: 0, col: 0 },
-      parse_stack: Vec::new(),
+    pub fn new() -> Self {
+        Self {
+            scanner: Scanner::new(),
+            next_tkn: Token { tp: Tkn::TknSIZE, text: String::new(), line: 0, col: 0 },
+            parse_stack: Vec::new(),
+        }
     }
-  }
 
-  // I'd call this "match", but that's a keyword.
-  // Return value indicates whether we ate a real token
-  fn eat(&mut self, expected: Tkn) -> bool {
-    if self.next_tkn.tp == expected {
-      println!("match {:?}: {}", expected, self.next_tkn.text);
-      
-      // 保存操作符信息供Action 8和Action 42使用
-      if matches!(expected, Plus | Minus | Gt | Lt | Ge | Le | Eq | Ne) {
-        unsafe {
-          crate::actions::LAST_MATCHED_OPERATOR = Some(expected);
+    /// Try to match and consume `expected`. Return `true` on real match.
+    fn eat(&mut self, expected: Tkn) -> bool {
+        if self.next_tkn.tp == expected {
+            if TRACE {
+                println!("match {:?}: {}", expected, self.next_tkn.text);
+            }
+
+            if matches!(expected, Plus | Minus) {
+                unsafe { crate::actions::LAST_MATCHED_OPERATOR = Some(expected); }
+            }
+            if matches!(expected, Times | DivBy) {
+                unsafe { crate::actions::LAST_MATCHED_OPERATOR = Some(expected); }
+            }
+            if matches!(expected, Eq | Ne | Lt | Le | Gt | Ge) {
+                unsafe { crate::actions::LAST_REL_OP = Some(expected); }
+            }
+
+            self.next_tkn = self.scanner.scan();
+            return true;
         }
-      }
-      
-      self.next_tkn = self.scanner.scan();
-      return true;
+        false
     }
-    return false;
-  }
 
-  // main entry point
-  pub fn parse(&mut self) {
-    // prime the pump:
-    self.next_tkn = self.scanner.scan();
-    self.parse_stack.push(NT(Goal));
+    pub fn parse(&mut self) {
+        // Prime lookahead and push augmented start symbol.
+        self.next_tkn = self.scanner.scan();
+        self.parse_stack.push(NT(Goal));
 
-    let mut attr_stack: Vec<Cell<ASitem>> = Vec::new();
-      // As it turns out, it's difficult in Rust to take ownership of an item
-      // in a vector (without actually removing it and sliding everything else
-      // down at O(n) cost).  We make it easier by letting each item be a
-      // Cell<ASitem> object, which supports ownership transferring .take()
-      // and .set(x) methods.  The .take() method requires that the ASitem type
-      // have a default value (Null), which is put into the vector instead.  The
-      // .set(x) method drops the previous content.
-    attr_stack.push(Cell::new(Null));   // Goal
-    let mut l_attr: usize = 0;    // \
-    let mut r_attr: usize = 0;    //   > indices into attr_stack
-    let mut n_attr: usize = 0;    // /
-    let mut old_contexts: Vec<(usize, usize)> = Vec::new();
-      // old (l_attr, r_attr) pairs
+        // Attribute stack & book-keeping indices.
+        let mut attr_stack: Vec<Cell<ASitem>> = Vec::new();
+        attr_stack.push(Cell::new(Null)); // Goal lhs
+        let mut l_attr: usize = 0;
+        let mut r_attr: usize = 0;
+        let mut n_attr: usize = 0;
+        let mut old_contexts: Vec<(usize, usize)> = Vec::new();
 
-    loop {
-      match self.parse_stack.pop() {
-        None => panic!("parse stack underflow; there's a bug somewhere"),
-        Some(Tk(tok)) => {
-          // put token we just popped into the attribute stack:
-          attr_stack[n_attr].set(Tok(self.next_tkn.clone()));
-          n_attr += 1;
-          if self.eat(tok) {
-            if tok == Stop {
-              // *** print out the constructed AST here
-              return;   // end of program
+        let mut matched_stop = false; // saw real Stop
+        let mut had_error = false;    // any syntax error occurred
+
+        loop {
+            let top = match self.parse_stack.pop() {
+                None => break,
+                Some(sym) => sym,
+            };
+
+            match top {
+                Tk(tok) => {
+                    if self.next_tkn.tp == tok {
+                        // Real match
+                        let matched = self.next_tkn.clone();
+                        let _ = self.eat(tok);
+                        attr_stack[n_attr].set(Tok(matched));
+                        n_attr += 1;
+                        if tok == Stop {
+                            matched_stop = true;
+                            break;
+                        }
+                    } else if tok == Stop {
+                        // Expecting Stop but something else ahead: insert it and finish.
+                        report_insert(tok, self.next_tkn.line, self.next_tkn.col);
+                        had_error = true;
+                        matched_stop = true;
+                        break;
+                    } else {
+                        // Mismatch on a regular terminal -> INSERT expected (pretend-match).
+                        // If we've actually run out of input, exit as premature end.
+                        if self.next_tkn.tp == Stop {
+                            had_error = true;
+                            break;
+                        }
+
+                        report_insert(tok, self.next_tkn.line, self.next_tkn.col);
+                        let dummy = Token {
+                            tp: tok,
+                            text: String::new(),
+                            line: self.next_tkn.line,
+                            col: self.next_tkn.col,
+                        };
+                        attr_stack[n_attr].set(Tok(dummy));
+                        n_attr += 1;
+                        had_error = true;
+                    }
+                }
+
+                NT(lhs) => {
+                    let la = self.next_tkn.tp;
+                    let act = &PARSE_TAB[lhs as usize][la as usize];
+                    match act {
+                        &Prod(n) | &EProd(n) => {
+                            let rhs = PROD_TAB[n];
+
+                            if TRACE {
+                                println!(
+                                    "predict {} -->{}",
+                                    lhs,
+                                    rhs.iter().fold(String::new(), |s, i| s + " " + &i.to_string())
+                                );
+                            }
+
+                            // Save old attribute context and open a new one for this production.
+                            old_contexts.push((l_attr, r_attr));
+                            l_attr = n_attr;
+                            r_attr = attr_stack.len();
+                            n_attr = r_attr;
+
+                            // Mark end-of-production on stack.
+                            self.parse_stack.push(EoP);
+
+                            // Push RHS (right-to-left) and allocate attributes.
+                            for &s in rhs.iter().rev() {
+                                self.parse_stack.push(s);
+                                attr_stack.push(Cell::new(Null));
+                            }
+
+                            // If we predicted epsilon (EProd), the EoP will pop quickly.
+                        }
+
+                        &ActErr => {
+                          // keep lhs on the stack; try to delete unexpected lookaheads
+                          self.parse_stack.push(NT(lhs));
+
+                          const MAX_DELETES: usize = 10000;
+                          let mut n = 0usize;
+                          let mut deleted_tokens = Vec::new();
+                          let mut first_error_line = 0;
+                          let mut first_error_col = 0;
+                          let mut current_line = 0;
+
+                          loop {
+                              let la2 = self.next_tkn.tp;
+
+                              if la2 == Stop {
+                                  had_error = true;
+                                  // Force outer loop to end; this will trigger "premature end of program".
+                                  self.parse_stack.clear();
+                                  break;
+                              }
+
+                              let a2 = &PARSE_TAB[lhs as usize][la2 as usize];
+
+                              // stop if we can now predict
+                              if !matches!(a2, &ActErr) { break; }
+
+                              // or if lookahead is in FOLLOW(lhs) and epsilon is allowed here
+                              if in_follow(lhs, la2) && matches!(a2, &EProd(_)) { break; }
+
+                              // Check if we're on a new line - if so, output previous tokens first
+                              if n > 0 && self.next_tkn.line != current_line {
+                                  // Output accumulated tokens from previous lines
+                                  println!("syntax error at line {} column {};", first_error_line, first_error_col);
+                                  println!("  deleted {}", deleted_tokens.join(" "));
+                                  deleted_tokens.clear();
+
+                                  // Start new batch
+                                  first_error_line = self.next_tkn.line;
+                                  first_error_col = self.next_tkn.col;
+                              }
+
+                              // Collect deleted token
+                              if n == 0 || deleted_tokens.is_empty() {
+                                  first_error_line = self.next_tkn.line;
+                                  first_error_col = self.next_tkn.col;
+                              }
+                              current_line = self.next_tkn.line;
+                              deleted_tokens.push(show_tkn(la2));
+                              had_error = true;
+
+                              if n >= MAX_DELETES { break; }
+                              self.next_tkn = self.scanner.scan();
+                              n += 1;
+                          }
+
+                          // Output any remaining deleted tokens
+                          if !deleted_tokens.is_empty() {
+                              println!("syntax error at line {} column {};", first_error_line, first_error_col);
+                              println!("  deleted {}", deleted_tokens.join(" "));
+                          }
+                      }
+                    }
+                }
+                //end of production
+                EoP => {
+                    // Collapse attribute frame for the finished production.
+                    n_attr = l_attr + 1;
+                    attr_stack.truncate(r_attr);
+                    match old_contexts.pop() {
+                        None => break, // context underflow after recovery
+                        Some(pair) => {
+                            (l_attr, r_attr) = pair;
+                        }
+                    }
+                }
+
+                //acton routine
+                AR(n) => {
+                    if TRACE {
+                        println!("*** Executing action routine {}", n);
+                    }
+                    // Only print AST (action 1) on completely clean parse.
+                    if n == 1 {
+                        if !had_error && self.next_tkn.tp == Stop {
+                            do_action(n, &mut attr_stack, l_attr, r_attr);
+                        }
+                        n_attr += 1;
+                    } else {
+                        do_action(n, &mut attr_stack, l_attr, r_attr);
+                        n_attr += 1;
+                    }
+                }
             }
-          } else {  // didn't find expected token
-            // *** You'll need to recover here instead
-            panic!("syntax error on line {}: expected {:?} but saw {:?}",
-                   self.next_tkn.line, tok, self.next_tkn.tp);
-          }
+        } 
+
+        // End-of-program
+        if !matched_stop {
+            // We never actually matched the Stop token -> premature EOF.
+            println!("premature end of program");
+        } else if self.next_tkn.tp != Stop {
+            // We ended but tokens remain.
+            println!("unconsumed input after end of program");
         }
-        Some(NT(lhs)) => {
-          let ntk = self.next_tkn.tp;
-          let action = &PARSE_TAB[lhs as usize][ntk as usize];
-          match action {
-            Err => {
-              // *** You'll need to recover here instead
-              panic!("syntax error on line {}: no prediction for {:?} when seeing {:?}",
-                     self.next_tkn.line, lhs, ntk);
-            }
-            Prod(n) | EProd(n) => {
-              let rhs = PROD_TAB[*n];
-                // n is a reference.  It can't be implicitly dereferenced
-                // because it can come from more than one place.
-              println!("predict {} -->{}", lhs,
-                rhs.iter().fold(String::new(), |s, i| s + " " + &i.to_string()));
-              // save indices in attribute stack:
-              old_contexts.push((l_attr, r_attr));
-              l_attr = n_attr;
-              r_attr = attr_stack.len();
-              n_attr = r_attr;
-              // mark end of production in the parse stack:
-              self.parse_stack.push(EoP);
-              // update parse and attribute stacks:
-              for &s in rhs.iter().rev() {
-                self.parse_stack.push(s);
-                attr_stack.push(Cell::new(Null));
-              }
-              if let EProd(_) = action {
-                // *** This is where you would need to do something special if
-                // *** trying to avoid the immediate error detection problem.
-              }
-            }
-          }
-        }
-        Some(EoP) => {  // end of current production
-          n_attr = l_attr + 1;
-          attr_stack.truncate(r_attr);
-          match old_contexts.pop() {
-            None => panic!("context stack underflow; there's a bug somewhere"),
-            Some(pair) => {
-              (l_attr, r_attr) = pair;
-            }
-          }
-        }
-        Some(AR(n)) => {
-          println!("*** Executing action routine {}", n);
-          do_action(n, &mut attr_stack, l_attr, r_attr);
-          n_attr += 1;
-        }
-      }
     }
-  }
-
-} // end impl Parser
+}

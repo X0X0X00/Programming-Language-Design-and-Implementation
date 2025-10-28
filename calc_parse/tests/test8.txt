@@ -1,0 +1,5 @@
+real r
+int i
+r := 250.0
+i := trunc(r / 3.14)
+write float(i)

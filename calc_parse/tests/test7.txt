@@ -1,0 +1,7 @@
+int n
+read n
+do
+  check n > 0
+  write n
+  n := n - 1
+od

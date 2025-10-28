@@ -14,17 +14,17 @@ EL -> Elsif L Then SL EL {62}
 L  -> C {65} CT
 C  -> R {66} RT
 R  -> E {67} ET
-E  -> T {7} TT
-T  -> F {11} FT
+E  -> T TT {7}
+T  -> F FT {11}
 CT -> Or C CT {40}
    -> {69}
 RT -> And R RT {41}
    -> {70}
 ET -> RO E {42}
    -> {68}
-TT -> AO T TT {8}
+TT -> AO T {8} TT
    -> {71}
-FT -> MO F FT {10}
+FT -> MO F {10} FT
    -> {72}
 RO -> Eq
    -> Ne

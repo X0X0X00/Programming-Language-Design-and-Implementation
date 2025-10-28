@@ -70,7 +70,7 @@ pub trait Stmt : Display { }
 /// would track line and column locations to facilitate semantic error
 /// messages.  I've left those out for simplicity.
 
-// 变量节点
+
 pub struct Atom {
   pub name: String, // variable name
 }
@@ -81,12 +81,12 @@ impl Atom {
 }
 impl Display for Atom {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "({})", self.name) // 变量名用括号括起来
+    write!(f, "({})", self.name) 
   }
 }
 impl Expr for Atom { } // Atom is an expression
 
-// 操作符节点
+
 pub struct Op {
   pub op: Tkn,
 }
@@ -101,11 +101,11 @@ impl Display for Op {
   }
 }
 
-// 二元表达式节点
+
 pub struct BinExpr {
-  pub op: Tkn, // 操作符
-  pub left: Box<dyn Expr>, // 左操作数
-  pub right: Box<dyn Expr>, // 右操作数
+  pub op: Tkn, 
+  pub left: Box<dyn Expr>, 
+  pub right: Box<dyn Expr>, 
 }
 impl BinExpr {
   pub fn new(o: Tkn, l: Box<dyn Expr>, r: Box<dyn Expr>) -> Self {
@@ -115,18 +115,18 @@ impl BinExpr {
 impl Display for BinExpr {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "({} {} {})",
-           match self.op { // 将操作符转换为字符串
+           match self.op { // convert operator token to string
             Plus => "+", Minus => "-", Times => "*", DivBy => "/",
             Eq => "==", Ne => "!=", Lt => "<", Gt => ">",
             Le => "<=", Ge => ">=", And => "&&", Or => "||",
             _ => "?",
            },
-           self.left, self.right) // 递归打印左、右操作数
+           self.left, self.right) // order: op left right
   }
 }
 impl Expr for BinExpr { }
 
-// read 语句节点
+// read
 pub struct Read {
   pub target: Box<Atom>,
 }
@@ -142,7 +142,7 @@ impl Display for Read {
 }
 impl Stmt for Read { }
 
-// write 语句节点
+// write
 pub struct Write {
   pub expr: Box<dyn Expr>,
 }
@@ -158,7 +158,7 @@ impl Display for Write {
 }
 impl Stmt for Write { }
 
-// 赋值语句节点
+// Assign
 pub struct Assign {
   pub target: Box<Atom>,
   pub rhs: Box<dyn Expr>,
@@ -175,7 +175,7 @@ impl Display for Assign {
 }
 impl Stmt for Assign { }
 
-// 语句块节点
+// Body
 pub struct Body {
   pub seq: Vec<Box<dyn Stmt>>,
 }
@@ -194,10 +194,10 @@ impl Display for Body {
 impl Stmt for Body { }
 
 
-// 声明节点
+// Declaration
 pub struct Decl {
-  pub var_name: Box<Atom>, // 变量名
-  pub var_type: String,  // "int" 或 "real"
+  pub var_name: Box<Atom>, // variable name
+  pub var_type: String,  // "int" or "real"
 }
 
 // new()
@@ -209,18 +209,18 @@ impl Decl {
 // Display
 impl Display for Decl {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "(decl {} ({}))", self.var_name, self.var_type) // 例如 (decl (x) (int))
+    write!(f, "(decl {} ({}))", self.var_name, self.var_type) // for example (decl (x) (int))
   }
 }
-impl Stmt for Decl { } // Decl 是语句
+impl Stmt for Decl { } 
 
 
 
-// 条件语句节点
+// Conditional
 pub struct If {
-  pub condition: Box<dyn Expr>, // 条件表达式
-  pub then_body: Box<Body>, // then 分支
-  pub else_body: Box<Body>, // else 分支
+  pub condition: Box<dyn Expr>, 
+  pub then_body: Box<Body>, // then 
+  pub else_body: Box<Body>, // else
 }
 impl If {
   pub fn new(cond: Box<dyn Expr>, then_b: Box<Body>, else_b: Box<Body>) -> Self {
@@ -235,7 +235,7 @@ impl Display for If {
 impl Stmt for If { }
 
 
-// 循环语句节点
+// Loop
 pub struct Do {
   pub body: Box<Body>,
 }
@@ -252,7 +252,7 @@ impl Display for Do {
 impl Stmt for Do { }
 
 
-// check 语句节点
+// check 
 pub struct Check {
   pub condition: Box<dyn Expr>,
 }
@@ -270,7 +270,7 @@ impl Stmt for Check { }
 
 
 
-// trunc 函数节点
+// trunc 
 pub struct Trunc {
   pub expr: Box<dyn Expr>,
 }
@@ -289,7 +289,7 @@ impl Expr for Trunc { }
 
 
 
-// float 函数节点
+// float 
 pub struct Float {
   pub expr: Box<dyn Expr>,
 }
@@ -301,9 +301,10 @@ impl Float {
 }
 impl Display for Float {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "(float {})", self.expr)
+    write!(f, "(Float {})", self.expr)  
   }
 }
+
 impl Expr for Float { }
 
 
@@ -337,15 +338,14 @@ impl Default for ASitem {
   fn default() -> Self { Null }
 }
 // Routines to extract the (expected) contents of an ASitem.  A panic means
-// there's a bug somewhere -- probably in an action routine.
 impl ASitem {
   pub fn to_tok(self) -> Token {
     let Tok(b) = self else { panic!("expected ASitem::Tok; found {}", self);};
-    b //如果不是Tok类型就panic
+    b //if not Tok -> panic
   }
   pub fn to_ex(self) -> Box<dyn Expr> {
     let Ex(b) = self else { panic!("expected ASitem::Ex; found {}", self);}; 
-    b // 如果不是Ex类型就panic
+    b // If not Ex -> panic
   }
   pub fn to_st(self) -> Box<dyn Stmt> {
     let St(b) = self else { panic!("expected ASitem::St; found {}", self);};
