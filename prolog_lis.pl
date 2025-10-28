@@ -96,5 +96,3 @@ max_by_length([_-Len1-Sequence1, _-Len2-Sequence2|Rest], MaxSequence) :-
     ;
         max_by_length([_-Len2-Sequence2|Rest], MaxSequence)
     ).
-
-

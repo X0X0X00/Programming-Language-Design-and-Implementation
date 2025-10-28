@@ -44,13 +44,13 @@ if __name__ == "__main__":
   178, 94, 345, 23, 198, 112, 267, 145, 78, 312, 189, 234, 356, 67, 289, 134, 401, 223, 89, 367, 245, 178, 412, 301, 156, 423, 278, 345, 189, 434, 367, 223, 445, 389, 267, 456, 312, 401, 234,
   467, 345, 278, 478, 423, 189, 489, 401, 356, 490, 445, 367, 501, 478, 423, 512, 489, 456, 523, 501, 490, 534]
 
-    #   print(f"Input: {test1}")
-    #   print(f"LIS: {lis(test1)}")
-    #   print()
-
-      print(f"Input: {test2}")
-      print(f"LIS: {lis(test2)}")
+      print(f"Input: {test1}")
+      print(f"LIS: {lis(test1)}")
       print()
+
+    #   print(f"Input: {test2}")
+    #   print(f"LIS: {lis(test2)}")
+    #   print()
 
     #   print(f"Input: {test3}")
     #   print(f"LIS: {lis(test3)}")

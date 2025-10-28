@@ -14,13 +14,13 @@ In addition to the required languages, we implemented solutions in **three extra
 For **extra credit**, we further implemented three **O(n log n) solutions using DP with binary search**.  
 
 
-## Algorithm
+## Efficiency
 - **Java, Go, Ruby** achieve an efficient **O(n log n)** time complexity. 
 - **Ocaml** achieves a moderate **O(n²)** time complexity. 
 - **Ada, C#, Python, Prolog** achieve an efficient **O(n³)** time complexity.
 
 
-## Language Implementations
+## Cmd
 ### Ada
 **File**: `ada_lis.adb`
 **Compile and Run**:
