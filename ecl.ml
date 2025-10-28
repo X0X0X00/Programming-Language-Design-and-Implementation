@@ -1203,6 +1203,117 @@ let typecheck (p : ast_sl)
   p2, errs, stab2.next_r, stab2.next_i
 
 (***************************************************************************
+    Constant Folding Optimizer
+
+    Performs compile-time constant folding by evaluating expressions
+    with constant operands and replacing them with their computed values.
+    This optimization reduces runtime computation and can enable further
+    optimizations.
+ ***************************************************************************)
+
+(* Helper: check if an expression is a constant value *)
+let rec is_constant_expr (e : ast2_e) : bool =
+  match e with
+  | AST2_real _ | AST2_int _ | AST2_bool _ -> true
+  | _ -> false
+
+(* Helper: evaluate a binary operation on constant values *)
+let eval_binop (op : string) (lo : ast2_e) (ro : ast2_e) : ast2_e option =
+  match (op, lo, ro) with
+  (* Integer arithmetic *)
+  | ("+", AST2_int l, AST2_int r) -> Some (AST2_int (l + r))
+  | ("-", AST2_int l, AST2_int r) -> Some (AST2_int (l - r))
+  | ("*", AST2_int l, AST2_int r) -> Some (AST2_int (l * r))
+  | ("/", AST2_int l, AST2_int r) ->
+     if r <> 0 then Some (AST2_int (l / r)) else None
+
+  (* Real arithmetic *)
+  | ("+", AST2_real l, AST2_real r) -> Some (AST2_real (l +. r))
+  | ("-", AST2_real l, AST2_real r) -> Some (AST2_real (l -. r))
+  | ("*", AST2_real l, AST2_real r) -> Some (AST2_real (l *. r))
+  | ("/", AST2_real l, AST2_real r) ->
+     if r <> 0.0 then Some (AST2_real (l /. r)) else None
+
+  (* Integer comparisons *)
+  | ("==", AST2_int l, AST2_int r) -> Some (AST2_bool (l = r))
+  | ("!=", AST2_int l, AST2_int r) -> Some (AST2_bool (l <> r))
+  | ("<", AST2_int l, AST2_int r) -> Some (AST2_bool (l < r))
+  | ("<=", AST2_int l, AST2_int r) -> Some (AST2_bool (l <= r))
+  | (">", AST2_int l, AST2_int r) -> Some (AST2_bool (l > r))
+  | (">=", AST2_int l, AST2_int r) -> Some (AST2_bool (l >= r))
+
+  (* Real comparisons *)
+  | ("==", AST2_real l, AST2_real r) -> Some (AST2_bool (l = r))
+  | ("!=", AST2_real l, AST2_real r) -> Some (AST2_bool (l <> r))
+  | ("<", AST2_real l, AST2_real r) -> Some (AST2_bool (l < r))
+  | ("<=", AST2_real l, AST2_real r) -> Some (AST2_bool (l <= r))
+  | (">", AST2_real l, AST2_real r) -> Some (AST2_bool (l > r))
+  | (">=", AST2_real l, AST2_real r) -> Some (AST2_bool (l >= r))
+
+  (* Boolean/Integer logical operations *)
+  | ("and", AST2_int l, AST2_int r) -> Some (AST2_int (if l <> 0 && r <> 0 then 1 else 0))
+  | ("or", AST2_int l, AST2_int r) -> Some (AST2_int (if l <> 0 || r <> 0 then 1 else 0))
+  | ("and", AST2_bool l, AST2_bool r) -> Some (AST2_bool (l && r))
+  | ("or", AST2_bool l, AST2_bool r) -> Some (AST2_bool (l || r))
+
+  | _ -> None
+
+(* Constant fold an expression *)
+let rec fold_expr (e : ast2_e) : ast2_e =
+  match e with
+  | AST2_real _ | AST2_int _ | AST2_bool _ | AST2_id _ -> e
+
+  | AST2_float inner ->
+     let folded_inner = fold_expr inner in
+     (match folded_inner with
+      | AST2_int i -> AST2_real (float_of_int i)
+      | _ -> AST2_float folded_inner)
+
+  | AST2_trunc inner ->
+     let folded_inner = fold_expr inner in
+     (match folded_inner with
+      | AST2_real r -> AST2_int (int_of_float r)
+      | _ -> AST2_trunc folded_inner)
+
+  | AST2_binop (op, tp, lo, ro, loc) ->
+     let lo_folded = fold_expr lo in
+     let ro_folded = fold_expr ro in
+     if is_constant_expr lo_folded && is_constant_expr ro_folded then
+       match eval_binop op lo_folded ro_folded with
+       | Some result -> result
+       | None -> AST2_binop (op, tp, lo_folded, ro_folded, loc)
+     else
+       AST2_binop (op, tp, lo_folded, ro_folded, loc)
+
+  | AST2_unop (op, tp, operand, loc) ->
+     let operand_folded = fold_expr operand in
+     (match (op, operand_folded) with
+      | ("-", AST2_int i) -> AST2_int (-i)
+      | ("-", AST2_real r) -> AST2_real (-.r)
+      | ("not", AST2_int i) -> AST2_int (if i = 0 then 1 else 0)
+      | ("not", AST2_bool b) -> AST2_bool (not b)
+      | _ -> AST2_unop (op, tp, operand_folded, loc))
+
+(* Constant fold a statement *)
+let rec fold_stmt (s : ast2_s) : ast2_s =
+  match s with
+  | AST2_error -> AST2_error
+  | AST2_read (id, vti, loc) -> AST2_read (id, vti, loc)
+  | AST2_write e -> AST2_write (fold_expr e)
+  | AST2_assign (id, vti, e) -> AST2_assign (id, vti, fold_expr e)
+  | AST2_check e -> AST2_check (fold_expr e)
+  | AST2_if (cond, tsl, esl) ->
+     AST2_if (fold_expr cond, fold_stmts tsl, fold_stmts esl)
+  | AST2_do sl -> AST2_do (fold_stmts sl)
+
+and fold_stmts (sl : ast2_sl) : ast2_sl =
+  List.map fold_stmt sl
+
+(* Apply constant folding to the entire program *)
+let constant_fold (p : ast2_sl) : ast2_sl =
+  fold_stmts p
+
+(***************************************************************************
     Actual interpreter
 
     Catches divide-by-zero, invalid input, and unexpected end of input
@@ -1580,7 +1691,9 @@ let ecg_run (prog : string) (inp : string) : string =
   else
     begin
       print_string "typecheck completed successfully\n";
-      interpret tree num_rs num_is inp
+      let optimized_tree = constant_fold tree in
+      print_string "constant folding completed\n";
+      interpret optimized_tree num_rs num_is inp
     end
 
 let show_ast prog = pp_p (ecg_ast prog)
@@ -1590,6 +1703,18 @@ let show_ast2 prog =
     ((if errs = [] then "no errors" else String.concat "\n" errs)
      ^ Printf.sprintf "\n# reals:%3d\n# ints: %3d\n" num_rs num_is);
   pp2_p tree
+
+(* Show AST before and after constant folding *)
+let show_ast2_with_fold prog =
+  let (tree, errs, num_rs, num_is) = typecheck (ecg_ast prog) in
+  print_string
+    ((if errs = [] then "no errors" else String.concat "\n" errs)
+     ^ Printf.sprintf "\n# reals:%3d\n# ints: %3d\n" num_rs num_is);
+  print_string "\n=== Before Constant Folding ===\n";
+  pp2_p tree;
+  let optimized = constant_fold tree in
+  print_string "\n=== After Constant Folding ===\n";
+  pp2_p optimized
 
 let main () =
   (*
