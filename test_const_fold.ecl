@@ -1,4 +1,3 @@
-// Test constant folding optimization
 int x
 int y
 int z

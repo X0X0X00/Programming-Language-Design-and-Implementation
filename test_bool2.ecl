@@ -1,4 +1,3 @@
-// Test boolean with read
 bool flag
 read flag
 if flag then

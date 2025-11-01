@@ -1,281 +1,178 @@
 # CSC 254 Assignment 3 - ECL Interpreter
 
-**Authors:**
-- Zhenhao Zhang (zzh133@u.rochester.edu)
-- Zhijie Wang (zwang179@u.rochester.edu)
+**Authors:** Zhenhao Zhang (zzh133@u.rochester.edu), Zhijie Wang (zwang179@u.rochester.edu)
 
-## Description
+---
 
-This project implements a complete interpreter for the Extended Calculator Language (ECL), a language that extends the basic calculator with type declarations, control flow statements, and type checking. The interpreter consists of two main phases:
+## Project Overview
 
-1. **Type Checking Phase**: Static semantic analysis that catches type errors, undeclared variables, scope violations, and other semantic issues before execution.
-2. **Interpretation Phase**: Execution of the type-checked program with dynamic error handling for runtime issues like division by zero and invalid input.
+Complete interpreter for the Extended Calculator Language with static type checking, constant folding optimization, and runtime execution.
 
-## Division of Labor
-
-- **Zhenhao Zhang**: Implemented the type checking phase (`typecheck` and related functions)
-- **Zhijie Wang**: Implemented the interpretation phase (`interpret` and related functions)
-
-Both team members collaborated on testing and debugging to ensure correctness.
+**Division of Labor:**
+- **Zhenhao Zhang**: Type checking phase, constant folding optimization
+- **Zhijie Wang**: Interpreter implementation, testing framework
 
 ## Language Features
 
-The ECL language supports:
-
+### Core Features
 - **Data Types**: `int`, `real`, `bool`
-- **Variable Declarations**: Explicit declarations with scope rules
-- **Expressions**: Arithmetic (`+`, `-`, `*`, `/`), relational (`==`, `!=`, `<`, `<=`, `>`, `>=`), and logical (`and`, `or`)
-- **Control Flow**: `if/elsif/else/fi` statements and `do/od` loops
-- **Type Conversions**: `float()` for int-to-real and `trunc()` for real-to-int
-- **I/O Operations**: `read` and `write` statements
-- **Loop Control**: `check` statements for conditional loop termination
-- **Comments**: Line comments with `//`
+- **Operators**: Arithmetic (`+`, `-`, `*`, `/`), Relational (`==`, `!=`, `<`, `<=`, `>`, `>=`), Logical (`and`, `or`, `not`), Unary (`-`, `not`)
+- **Control Flow**: `if/elsif/else/fi` statements, `do/od` loops with `check` for early exit
+- **Type Conversions**: `float()` (int→real), `trunc()` (real→int)
+- **I/O**: `read` and `write` statements
 
-**Note:** Boolean type support is a custom extension beyond the original assignment requirements. See [BOOLEAN_IMPLEMENTATION.md](BOOLEAN_IMPLEMENTATION.md) for detailed documentation.
 
-## Implementation Details
 
-### Symbol Table
+## Extra Credit Features
 
-The implementation uses a stack-based symbol table to handle nested scopes:
-- Each scope (statement list, loop body, if/else block) has its own symbol table entry
-- Variable lookup searches from innermost to outermost scope
-- Shadowing is supported: inner declarations hide outer ones
-- Memory is allocated using separate arrays for real and integer values
+### 1. Boolean Type System 
+Complete boolean type with full type system integration:
+- Boolean declarations (`bool x`), literals (`true`, `false`)
+- Boolean I/O (read/write)
+- Logical operations on booleans
+- Comparison operators return boolean
+- Boolean conditions in if/check statements
 
-### Type Checking
 
-The type checker performs the following validations:
+### 2. Unary Operators
+- Unary negation: `write -(1 + 1)` → `-2`
+- Logical not: `write not true` → `false`
 
-**Static Semantic Errors Detected:**
-1. Use of undeclared variables
-2. Redeclaration of variables in the same scope
-3. Type mismatches in binary expressions and assignments
-4. Non-int operands to `and` or `or` operators
-5. Non-int argument to `float()` function
-6. Non-real argument to `trunc()` function
-7. `check` statements outside of loops
+### 3. Constant Folding Optimization 
+Compile-time evaluation of constant expressions:
+- Arithmetic: `write 3 + 5` → optimized to `write 8`
+- Nested: `write (3+5)*(10-2)` → optimized to `write 64`
+- Type conversions: `write float(10)` → optimized to `write 10.0`
+- Partial folding: Only folds constants, preserves variables
 
-**Error Handling Strategy:**
-- Avoids cascading errors by not reporting type mismatches when subexpressions already contain errors
-- Uses an error type (`Verror`) to mark expressions with type errors
-- Accumulates all errors and reports them together
+**Implementation:** Recursive bottom-up folding that preserves type safety and runtime error checks.
 
-### Interpretation
-
-The interpreter executes the type-checked AST with the following features:
-
-**Dynamic Semantic Errors Detected:**
-1. Division by zero (for both int and real)
-2. Non-int input when reading an int variable
-3. Non-real input when reading a real variable
-4. Unexpected end of input during read operations
-
-**Execution Model:**
-- Uses imperative arrays for variable storage (mutable state)
-- Maintains input and output as lists of strings
-- Status-based control flow (Good/Bad/Done) for loop termination
-
-### Functional Programming Approach
-
-The implementation follows functional programming principles:
-- All type checking and AST manipulation is purely functional
-- Pattern matching is used extensively for tree traversal
-- Tail recursion is used for iteration over statement lists
-- The only imperative features used are: memory array updates during interpretation, I/O operations, and the main driver loop
+---
 
 ## Building and Running
 
 ### Compilation
-
 ```bash
 ocamlc -o ecl -I +str str.cma ecl.ml
 ```
 
 ### Running Programs
-
-The interpreter reads ECL programs from a file and input from stdin:
-
 ```bash
-./ecl program.ecl
+./ecl program.ecl           # Run with interactive input (type Ctrl-D when done)
+./ecl program.ecl < input.txt  # Run with input file
 ```
 
-Or with input redirection:
-
-```bash
-./ecl program.ecl < input.txt
-```
-
-### Interactive Development
-
-For development with the OCaml REPL:
-
-**Using ocaml:**
-```ocaml
-#load "str.cma";;
-#use "ecl.ml";;
-ecg_run primes_prog "10";;
-```
-
-**Using utop (recommended):**
+### Interactive Testing (utop)
 ```ocaml
 #require "str";;
 #use "ecl.ml";;
-ecg_run sum_ave_prog "4 6";;
+ecg_run "write 3 + 5" "";;
 ```
+
+---
 
 ## Testing
 
-We developed a comprehensive test suite covering:
+### Test Suite Overview
 
-### Correct Programs (25 tests)
-- Basic arithmetic and expressions
-- Control flow (if/elsif/else, nested if statements)
-- Loops (do/od with check statements)
-- Type conversions (float/trunc)
-- Logical operators (and/or)
-- Comparison operators (==, !=, <, <=, >, >=)
-- Complex nested structures
-- Boolean type features (declarations, literals, I/O, operations)
-- The four provided sample programs: sum_ave, primes, gcd, sqrt
+Comprehensive test suite with **64 tests** covering all features:
 
-### Static Semantic Errors (13 tests)
-- Undeclared variable usage
-- Variable redeclaration in same scope
-- Type mismatches in assignments and expressions
-- Invalid arguments to float() and trunc()
-- Incorrect operand types for and/or operators
-- Check statements outside loops
-
-### Dynamic Semantic Errors (6 tests)
-- Division by zero (integer and real)
-- Invalid input types (non-int, non-real)
-- Unexpected end of input
-- Runtime divide-by-zero with variables
-
-### Scope and Shadowing (3 tests)
-- Variable shadowing in nested scopes
-- Scope isolation in if/else blocks
-- Scope isolation in loop bodies
-
-### Edge Cases (7 tests)
-- Multiple reads and writes
-- Empty control flow blocks
-- Zero/non-zero as boolean conditions
-- Floating-point precision
-- Multiple elsif branches
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Basic Programs | 1-10 | Arithmetic, I/O, control flow |
+| Advanced | 11-18 | Negation, complex expressions, conversions |
+| **Boolean Type** | **19-25** | **Boolean operations (Extra Credit)** |
+| Static Errors | 26-38 | All 7 required error types |
+| Dynamic Errors | 39-44 | All 4 required error types |
+| Scope | 45-47 | Nested scopes, shadowing |
+| Edge Cases | 48-54 | Empty blocks, precision, branches |
+| **Constant Folding** | **55-64** | **Optimization tests (Extra Credit)** |
 
 ### Running Tests
 
-We created two test scripts:
-
-**Basic test suite (27 tests):**
 ```bash
-./run_tests.sh
+./run_all_tests.sh              # Full suite (64 tests)
+./run_tests.sh                  # Basic suite (27 tests)
+./test_constant_folding.sh      # Optimization tests
+./compare_with_reference.sh     # Compare with ~cs254/bin/ecl
 ```
-
-**Extended test suite (54 tests, includes boolean type tests):**
-```bash
-./run_all_tests.sh
-```
-
-Both scripts provide clear PASS/FAIL indicators and show expected vs actual output for failures.
 
 ### Test Results
 
-**All 54 tests in the extended test suite pass successfully!** ✅
+**All 64 tests pass!** ✅
 
-The implementation correctly handles:
-- All basic language features (arithmetic, I/O, control flow)
-- Boolean type implementation (declarations, literals, logical operators)
-- Unary operators (`not` and unary `-`)
-- Type checking and error detection
-- Accurate scope and type checking
-- Correct runtime behavior
-- All static and dynamic semantic error cases
-- Edge cases and complex nested structures
+- All core language features work correctly
+- All 7 static error types detected
+- All 4 dynamic error types detected
+- Boolean type system fully functional
+- Constant folding optimization verified
+- Compatible with reference implementation
 
-## Example Programs
+---
 
-### Sum and Average
-```
-int a read a
-int b read b
-int sum sum := a + b
-write sum
-write float(sum) / 2.0
-```
-
-### Prime Number Generator
-Generates the first N prime numbers using nested loops and the check statement for early loop termination.
-
-### GCD Calculator
-Computes the greatest common divisor of two numbers using the Euclidean algorithm.
-
-### Square Root Approximation
-Calculates square roots using binary search to the specified precision.
-
-## Challenges and Opportunities in OCaml
+## Challenges and Opportunities with Functional OCaml
 
 ### Challenges
 
-1. **Pattern Matching Complexity**: Handling the deeply nested AST structures required careful pattern matching. We needed to ensure all cases were covered while avoiding redundant code.
+1. **State Management in Pure Functions**: Managing symbol tables and variable environments required explicit passing through all recursive calls instead of using mutable state. This made the code more verbose but ultimately more predictable.
 
-2. **Error Accumulation**: Designing the error handling to avoid cascading errors while still catching all genuine issues required careful thought about when to propagate error types.
+2. **Error Accumulation Without Side Effects**: Implementing non-cascading error detection required threading error lists through the entire type checking phase while avoiding duplicate errors.
 
-3. **Functional Purity**: Maintaining purely functional code for type checking while tracking mutable state (symbol tables, error lists) required disciplined use of return tuples and avoiding side effects.
+3. **Scope Management**: Implementing proper variable scoping with shadowing in a purely functional way required careful design of the symbol table structure as nested lists.
 
-4. **Scope Management**: Implementing proper scope rules with shadowing and ensuring variables are visible from their declaration point to the end of their scope required careful attention to when scopes are created and destroyed.
+4. **Optimization Correctness**: Ensuring constant folding preserves program semantics (especially runtime error checks like division by zero) required careful analysis of when folding is safe.
 
-5. **Tail Recursion**: Ensuring all recursive functions were tail-recursive (especially for statement list processing) to avoid stack overflows on large programs.
+5. **Performance Concerns**: Purely functional data structures sometimes required copying entire structures, but OCaml's garbage collector and optimization made this manageable.
 
 ### Opportunities
 
-1. **Pattern Matching**: OCaml's pattern matching made it elegant to handle different AST node types and traverse the tree structure. The ability to destructure complex data types in match statements significantly simplified the code.
+1. **Pattern Matching**: OCaml's exhaustive pattern matching on AST nodes made it easy to handle all cases correctly and caught missing cases at compile time. Tree traversal became elegant and self-documenting.
 
-2. **Type Safety**: OCaml's strong static typing caught many potential bugs at compile time. The type system helped ensure that we handled all cases correctly, especially with algebraic data types for AST nodes.
+2. **Type Safety**: OCaml's strong static typing caught many bugs at compile time. For example, mixing up `Vint` and `Vreal` was impossible, preventing an entire class of bugs.
 
-3. **Immutability by Default**: The functional approach with immutable data structures made reasoning about the type checker much easier. We never had to worry about unintended modifications to the AST or symbol table.
+3. **Immutability**: Since all data structures were immutable by default, we never had to worry about accidental mutations causing bugs. This made reasoning about the type checker and optimizer much easier.
 
-4. **Higher-Order Functions**: Using map, fold_left, and other higher-order functions from the List library made many operations concise and expressive.
+4. **Algebraic Data Types**: Custom types like `value = Ivalue of int | Rvalue of float | Bvalue of bool` made the code self-documenting and enabled exhaustive pattern matching.
 
-5. **Option Types**: OCaml's option types provided a clean way to handle cases like symbol table lookups that might not find a result, avoiding the need for null-like values.
+5. **Higher-Order Functions**: Built-in functions like `List.map`, `List.fold_left`, and `List.filter` made many operations concise and declarative. For example, filtering constant expressions or mapping type checking over statement lists.
 
-6. **Algebraic Data Types**: The ability to define custom types for AST nodes, values, and statuses made the code self-documenting and allowed the compiler to verify exhaustiveness of pattern matching.
+6. **Tail Recursion**: OCaml's tail call optimization meant we could write recursive functions naturally without stack overflow concerns, making the code cleaner than explicit iteration.
 
-## File Structure
+### Overall Assessment
 
-- [ecl.ml](ecl.ml) - Main interpreter implementation (1619+ lines)
-  - Lines 1-869: Parser generator, scanner, and parse tree builder (provided, with boolean literal support added)
-  - Lines 870-1177: Type checker implementation (Zhenhao Zhang, with boolean type support)
-  - Lines 1178-1457: Interpreter implementation (Zhijie Wang, with boolean handling)
-  - Lines 1458-1620: Test programs and main driver
-- [README.md](README.md) - This file, comprehensive project documentation
-- [BOOLEAN_IMPLEMENTATION.md](BOOLEAN_IMPLEMENTATION.md) - Detailed documentation of boolean type extension
-- [run_tests.sh](run_tests.sh) - Basic test suite (27 tests)
-- [run_all_tests.sh](run_all_tests.sh) - Extended test suite (54 tests, includes boolean tests)
-- [sum_ave.ecl](sum_ave.ecl) - Sum and average program
-- [primes.ecl](primes.ecl) - Prime number generator
-- [gcd.ecl](gcd.ecl) - GCD calculator
-- [sqrt.ecl](sqrt.ecl) - Square root approximation
-- [test_bool.ecl](test_bool.ecl) - Boolean type comprehensive test
-- [test_*.ecl](.) - Additional test programs for specific features
+The purely functional approach forced us to think carefully about data flow and made the code more maintainable. While initially challenging for those used to imperative programming, OCaml's features (pattern matching, immutability, algebraic types) ultimately made building a correct interpreter easier than it would have been in an imperative language.
 
-## Notes
+---
 
-- The interpreter requires all input to be provided at once (non-interactive). Press Ctrl-D (EOF) to signal end of input.
-- Numbers in input must be whitespace-separated. For example, `12.34` is valid, but it will be rejected as input for an `int` variable.
-- The implementation uses OCaml's `Str` library for string processing, which must be explicitly loaded in the REPL or included during compilation.
-- Error messages include line and column numbers to help locate issues in the source code.
-- The type checker runs before any input is read, so type errors are reported without executing the program.
+## Implementation Notes
 
-## Verification
+- **Symbol Table**: Stack-based with nested scopes, supports shadowing
+- **Type Checking**: Purely functional, avoids cascading errors
+- **Optimization**: Bottom-up constant folding during type checking
+- **Interpretation**: Uses imperative arrays only for variable storage (as permitted)
+- **Code Style**: Idiomatic OCaml with pattern matching, tail recursion, and higher-order functions
 
-The implementation was tested against the reference solution provided in `~cs254/bin/ecl` on the csug machines. Our interpreter produces compatible output for all test cases, including:
-- Correct output for valid programs
-- Appropriate error messages for static and dynamic semantic errors
-- Proper handling of edge cases and complex nested structures
+---
 
-## Conclusion
+## Files
 
-This project demonstrates a complete implementation of a statically-typed interpreted language with proper error handling at both compile-time and runtime. The use of OCaml's functional programming features allowed us to build a clean, maintainable implementation that correctly handles all aspects of the ECL language specification.
+**Core:** ecl.ml (1780 lines - parser, type checker, optimizer, interpreter)
+
+**Tests:** run_all_tests.sh, run_tests.sh, test_constant_folding.sh, compare_with_reference.sh
+
+**Programs:** sum_ave.ecl, primes.ecl, gcd.ecl, sqrt.ecl, test_bool.ecl, test_const_fold.ecl, etc.
+
+---
+
+## Summary
+
+This implementation demonstrates:
+- ✅ Complete ECL language with all required features
+- ✅ All 7 static + 4 dynamic error types correctly detected
+- ✅ Boolean type system (Extra Credit)
+- ✅ Constant folding optimization (Extra Credit)
+- ✅ 64 comprehensive tests (all passing)
+- ✅ Purely functional implementation (except permitted mem array updates)
+- ✅ Compatible with reference implementation
+
+The use of OCaml's functional features resulted in a clean, correct, and maintainable interpreter that handles all language requirements plus advanced extensions.

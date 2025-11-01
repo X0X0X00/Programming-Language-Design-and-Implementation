@@ -1052,14 +1052,14 @@ and typecheck_s (s : ast_s) (stab : symtab) (in_loop : bool)
      (** YOUR CODE HERE
          You'll want to catch type clashes, but avoid cascading errors.
       **)
- 
+
      let (stab2, (id_tp, id_ix), lookup_err) = stab_lookup id id_loc stab in
      let (checked_expr, stab3, expr_errs) = typecheck_e expr stab2 in
      let error_tp = ast2_etype checked_expr in
      let type_err = 
        if id_tp = Verror || error_tp = Verror then []
        else if id_tp <> error_tp then 
-         [complaint gets_loc ("type clash on assignment")]
+         [complaint gets_loc ("type mismatch in assignment")]
        else []
      in
      AST2_assign (id, (id_tp, id_ix), checked_expr), stab3,
@@ -1080,7 +1080,7 @@ and typecheck_s (s : ast_s) (stab : symtab) (in_loop : bool)
 
      let (cond_checked, stab2, cond_errs) = typecheck_e cond stab in
      let loop_err =
-       if not in_loop then [complaint cloc "check statement must be within a do loop"]
+       if not in_loop then [complaint cloc "check statement outside loop"]
        else []
      in
      AST2_check cond_checked, stab2, cond_errs @ loop_err
@@ -1521,7 +1521,7 @@ and interpret_e (expr : ast2_e) (mem : memory) : value =
       (** YOUR CODE HERE **)
       (match interpret_e e mem with
       | Ivalue i -> Rvalue (float_of_int i)
-      | _ -> raise (Failure "should be a float"))
+      | _ -> raise (Failure "non-int to float"))
 
 
 
@@ -1530,14 +1530,14 @@ and interpret_e (expr : ast2_e) (mem : memory) : value =
      (** YOUR CODE HERE **)
      (match interpret_e e mem with
       | Rvalue r -> Ivalue (int_of_float r)
-      | _ -> raise (Failure "should be a trunc"))
+      | _ -> raise (Failure "non-real to trunc"))
 
 
   | AST2_binop (op, tp, lo, ro, loc) ->
      (** YOUR CODE HERE
          In the division case you'll need to check for a zero denominator.
       **)
-    let lv = interpret_e lo mem in (**lv = left_value*)
+    let lv = interpret_e lo mem in
     let rv = interpret_e ro mem in
     (match lv, rv with
       | Evalue msg, _ | _, Evalue msg -> Evalue msg
@@ -1578,7 +1578,7 @@ and interpret_e (expr : ast2_e) (mem : memory) : value =
           | "==" -> Bvalue (l = r)
           | "!=" -> Bvalue (l <> r)
           | _ -> raise (Failure "unknown bool op"))
-      | _ -> raise (Failure "type clash on and/or"))
+      | _ -> raise (Failure "type mismatch in binop"))
 
   | AST2_unop (op, tp, operand, loc) ->
      let v = interpret_e operand mem in
