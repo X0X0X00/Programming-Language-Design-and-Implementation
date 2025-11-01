@@ -1126,7 +1126,7 @@ and typecheck_e (e : ast_e) (stab : symtab)
        let tp = ast2_etype checked_expr in
        let type_err =
           if tp = Verror then []
-          else if tp <> Int then [complaint eloc "non-int argument to float"]
+          else if tp <> Int then [complaint eloc "argument to float should be an int"]
           else []
        in
        AST2_float checked_expr, stab2, errs @ type_err
@@ -1143,7 +1143,7 @@ and typecheck_e (e : ast_e) (stab : symtab)
       let tp = ast2_etype checked_expr in
       let type_err =
         if tp = Verror then []
-        else if tp <> Real then [complaint eloc "non-real argument to trunc"]
+        else if tp <> Real then [complaint eloc "argument to trunc should be a real"]
         else []
       in
       AST2_trunc checked_expr, stab2, errs @ type_err
@@ -1165,11 +1165,11 @@ and typecheck_e (e : ast_e) (stab : symtab)
       let ro_tp = ast2_etype ro_checked in
       let (result_tp, type_err) =
         if lo_tp = Verror || ro_tp = Verror then (Verror, [])
-        else if lo_tp <> ro_tp then (Verror, [complaint oloc "type mismatch in binop"])
+        else if lo_tp <> ro_tp then (Verror, [complaint oloc ("type clash on " ^ op)])
         else
           match op with
           | "and" | "or" ->
-            if lo_tp <> Bool && lo_tp <> Int then (Verror, [complaint oloc "non-bool/int operand to and/or"])
+            if lo_tp <> Bool && lo_tp <> Int then (Verror, [complaint oloc ("type clash on " ^ op)])
             else (lo_tp, [])
           | "==" | "!=" | "<" | "<=" | ">" | ">=" -> (Bool, [])
           | _ -> (lo_tp, [])
@@ -1337,6 +1337,15 @@ type value =
   | Bvalue of bool
   | Evalue of string    (* divide-by-zero is the only bad case at present *)
 
+(* Format float to match reference output:
+   - Remove trailing zeros after decimal point
+   - Keep decimal point even if all fractional digits are zero *)
+let format_float (f : float) : string =
+  let s = Printf.sprintf "%.12g" f in
+  if String.contains s '.' || String.contains s 'e' || String.contains s 'E'
+  then s
+  else s ^ "."
+
 (* Accumulated output is constructed in reverse. *)
 let rec interpret_sl (sl : ast2_sl) (mem : memory)
                      (inp : string list) (outp : string list)
@@ -1426,7 +1435,7 @@ and interpret_write (expr : ast2_e) (mem : memory)
   (** YOUR CODE HERE **)
 
   match interpret_e expr mem with
-  | Rvalue r -> Good, inp, (Printf.sprintf "%f" r) :: outp
+  | Rvalue r -> Good, inp, (format_float r) :: outp
   | Ivalue i -> Good, inp, (string_of_int i) :: outp
   | Bvalue b -> Good, inp, (string_of_bool b) :: outp
   | Evalue msg -> Bad, inp, msg :: outp
