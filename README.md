@@ -52,3 +52,25 @@ Complete interpreter for the Extended Calculator Language with static type check
 **Implementation:** Recursive bottom-up folding that preserves type safety and runtime error checks.
 
 
+## Building and Running
+
+
+
+## Testing
+
+
+
+
+## Challenges & Opportunities
+
+### Zhenhao
+
+
+### Zhijie
+
+
+
+
+
+
+
