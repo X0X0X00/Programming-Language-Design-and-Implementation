@@ -1,0 +1,5 @@
+real r
+int n
+r := 5.5
+n := trunc(r)
+write float(n)

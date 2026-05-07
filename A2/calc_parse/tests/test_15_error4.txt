@@ -1,0 +1,4 @@
+int n
+if n > 0 then then
+  write n
+fi

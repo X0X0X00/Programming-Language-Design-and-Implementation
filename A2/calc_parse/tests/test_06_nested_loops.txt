@@ -1,0 +1,13 @@
+int n  read n
+int m  read m
+do
+  check n > 0
+  do
+    check m > 0
+    write n
+    write m
+    m := m - 1
+  od
+  n := n - 1
+  m := 2
+od

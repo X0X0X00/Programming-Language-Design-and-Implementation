@@ -1,0 +1,13 @@
+int num
+int sum
+num := 1
+sum := 0
+do
+  check num <= 5
+  if num == 2 then
+    sum := sum + num
+  fi
+  write num
+  write sum
+  num := num + 1
+od

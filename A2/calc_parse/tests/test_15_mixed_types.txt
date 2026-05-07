@@ -1,0 +1,9 @@
+int count
+real average
+count := 5
+average := 85.6
+write count
+write average
+if count > 0 then
+  write average + count
+fi

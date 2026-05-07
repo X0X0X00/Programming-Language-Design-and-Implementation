@@ -1,0 +1,4 @@
+int n
+else
+  write 0
+write n

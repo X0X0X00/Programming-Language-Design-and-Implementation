@@ -1,0 +1,12 @@
+int n
+int factorial
+int counter
+read n
+factorial := 1
+counter := 1
+do
+  check counter <= n
+  factorial := factorial + counter
+  counter := counter + 1
+od
+write factorial

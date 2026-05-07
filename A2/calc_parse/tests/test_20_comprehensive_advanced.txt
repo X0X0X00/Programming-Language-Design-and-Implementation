@@ -1,0 +1,28 @@
+// Advanced comprehensive test
+int x
+real y
+int result
+read x
+y := 3.14159
+result := 0
+
+if x > 0 then
+  do
+    check x > 0
+    if x == 2 then
+      result := result + x
+      write result
+    elsif x == 3 then
+      result := result - x
+      write result
+    else
+      result := result + 2
+      write result
+    fi
+    x := x - 1
+  od
+else
+  write y + 2.0
+fi
+
+write result

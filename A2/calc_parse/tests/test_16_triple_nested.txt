@@ -1,0 +1,21 @@
+int i
+int j
+int k
+i := 2
+j := 3
+k := 4
+do
+  check i > 0
+  do
+    check j > 0
+    do
+      check k > 0
+      write i + j + k
+      k := k - 1
+    od
+    j := j - 1
+    k := 2
+  od
+  i := i - 1
+  j := 2
+od

@@ -1,0 +1,9 @@
+int a
+int b
+int c
+a := 10
+b := 5
+c := 2
+write (a + b) + c
+write a + (b + c)
+write ((a - b) + c) + 2

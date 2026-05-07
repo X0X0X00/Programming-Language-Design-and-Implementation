@@ -1,0 +1,2 @@
+// last line has no newline
+int x  x := 1 // trailing comment at end

@@ -1,0 +1,6 @@
+int n  read n
+if n > 0 then
+  write n
+else
+  write 0
+fi

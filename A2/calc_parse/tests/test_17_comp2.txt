@@ -1,0 +1,7 @@
+int n
+read n
+n := 1 + * 2     // stray Times
+write (n         // missing RParen
+if n > then      // missing right side before Then
+  write n))
+fi

@@ -1,0 +1,16 @@
+int n
+real r
+read n
+r := float(n)
+do
+  if n > 1 then
+    write n
+  elsif n == 1 then
+    write 1
+  else
+    write 0
+  fi
+  n := n - 1
+  check n >= 0
+od
+write trunc(r)
