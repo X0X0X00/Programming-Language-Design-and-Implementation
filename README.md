@@ -1,76 +1,37 @@
-# CSC 254 Assignment 3 - ECL Interpreter
+# Programming Language Design and Implementation — CSC 254 (A3)
 
-**Authors:** 
-Zhenhao Zhang (zzh133@u.rochester.edu)  
-Zhijie Wang (zwang179@u.rochester.edu)
+> University of Rochester · CSC 254 · 2022–2025 · OCaml + ECL
 
+Course repository: labs, projects, and selected homework from CSC 254
+(Programming Language Design and Implementation) at the University of
+Rochester. This repo holds Assignment 3.
 
-## Project Overview
+## Course Overview
+Complete interpreter, written in OCaml, for the course's Extended Calculator
+Language (ECL). The interpreter performs static type checking, constant
+folding, and runtime execution over `.ecl` source programs. Done as a
+two-person team (Zhenhao Zhang, Zhijie Wang).
 
-Complete interpreter for the Extended Calculator Language with static type checking, constant folding optimization, and runtime execution.
+## Topics Covered
+- Abstract-syntax-tree representation in OCaml
+- Static type checking with `int`, `real`, `bool`
+- Scoped variables and declaration-before-use rules
+- Control flow: `if/elsif/else/fi`, `do/od` loops with `check`
+- Type conversions (`float`, `trunc`) and unary / logical operators
+- Constant folding optimization
+- Runtime error handling (divide-by-zero, invalid input)
 
-**Division of Labor:**
-- **Zhenhao Zhang**: Type checking phase, constant folding optimization
-- **Zhijie Wang**: Interpreter implementation, testing framework
+## What's in this Repo
+- `ecl.ml` — OCaml interpreter source (type-checking + folding + execution)
+- `ecl.cmi`, `ecl.cmo` — compiled OCaml artifacts
+- `gcd.ecl`, `primes.ecl`, `sqrt.ecl`, `sum_ave.ecl` — sample ECL programs
+- `test_bool.ecl`, `test_bool2.ecl`, `test_complex_expr.ecl`, `test_const_fold.ecl`,
+  `test_float_trunc.ecl`, `test_minus.ecl`, `test_negation.ecl`,
+  `test_nested_loops.ecl`, `test_unary.ecl` — feature-specific test programs
+- `comprehensive_test.sh` — full test driver
 
-## Language Features
+## Tech Stack
+OCaml (`ocamlc`), ECL (course-defined source language), Bash
 
-### Core Features
-- **Data Types**: `int`, `real`, `bool`
-- **Variables**: Declaration before use, scoped (if/else/loop blocks)
-- **Operators**: Arithmetic (`+`, `-`, `*`, `/`), Relational (`==`, `!=`, `<`, `<=`, `>`, `>=`), Logical (`and`, `or`), Unary (`-`, `not`)
-- **Control Flow**: `if/elsif/else/fi` statements, `do/od` loops with `check` for early exit
-- **Type Conversions**: `float()` (int→real), `trunc()` (real→int)
-- **I/O**: `read` and `write` statements
-- **Error Handling**: Static type checking, runtime error detection (divide-by-zero, invalid input...)
-
-
-
-
-## Extra Credit Features
-
-### 1. Boolean Type System 
-- Boolean declarations (`bool x`), literals (`true`, `false`)
-- Boolean I/O (read/write)
-- Logical operations on booleans
-- Comparison operators return boolean
-- Boolean conditions in if/check statements
-
-
-### 2. Unary Operators
-- Unary negation: `write -(1 + 1)` → `-2`
-- Logical not: `write not true` → `false`
-
-
-### 3. Constant Folding Optimization 
-- Arithmetic: `write 3 + 5` → optimized to `write 8`
-- Nested: `write (3+5)*(10-2)` → optimized to `write 64`
-- Type conversions: `write float(10)` → optimized to `write 10.0`
-- Unary operations: `write -(-5)` → optimized to `write 5
-- Partial folding: Only folds constants, preserves variables
-
-**Implementation:** Recursive bottom-up folding that preserves type safety and runtime error checks.
-
-
-## Building and Running
-
-
-
-## Testing
-
-
-
-
-## Challenges & Opportunities
-
-### Zhenhao
-
-
-### Zhijie
-
-
-
-
-
-
-
+## Notes
+Coursework archive — kept as personal reference. Code reflects assignment constraints, not production style.
