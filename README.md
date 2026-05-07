@@ -2,9 +2,8 @@
 
 > University of Rochester · CSC 254 · 2022–2025 · Multi-language
 
-Course repository for CSC 254 (Programming Language Design and
-Implementation) at the University of Rochester. Holds all three
-assignments in one place.
+Course repository: selected homework from CSC 254 at the University of Rochester.
+
 
 ## Course Overview
 Survey of programming-language design and implementation: language
@@ -22,8 +21,11 @@ interpreter end-to-end.
 - [`A3/`](A3) — **Assignment 3**: Complete interpreter in **OCaml** for the
   course's Extended Calculator Language (**ECL**), with static type
   checking, constant folding, and runtime execution.
+- [`A4/`](A4) — **Assignment 4**: Parallel **N-body simulation** in **Java**;
+  thread-based version (`CyclicBarrier`) and executor-based version
+  (`ExecutorService`) with load-balancing optimizations.
 
-Each assignment has its own README inside its folder with build/run
+Each assignment has its own README or PDF inside its folder with build/run
 instructions.
 
 ## Tech Stack
